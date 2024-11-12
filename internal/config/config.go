@@ -8,30 +8,30 @@ import (
 
 type Config struct {
 	ENV        string     `yaml:"ENV" env-default:"dev"`
-	HTTPServer HTTPServer `yaml:"http_server"`
-	Database   Database   `yaml:"postgres"`
-	Cache      Cache      `yaml:"redis"`
+	HTTPServer HTTPServer `yaml:"http_server" env-required:"true"`
+	Postgres   Postgres   `yaml:"postgres" env-required:"true"`
+	Redis      Redis      `yaml:"redis" env-required:"true"`
 }
 
 type HTTPServer struct {
-	Host        string        `yaml:"host"`
-	Port        string        `yaml:"port"`
-	IdleTimeout time.Duration `yaml:"idle_timeout"`
+	Host        string        `yaml:"host" env-required:"true"`
+	Port        string        `yaml:"port" env-required:"true"`
+	IdleTimeout time.Duration `yaml:"idle_timeout" env-required:"true"`
 }
 
-type Database struct {
-	User     string `yaml:"user"`
-	Password string `yaml:"password"`
-	Host     string `yaml:"host"`
-	Port     string `yaml:"port"`
-	DBName   string `yaml:"db_name"`
-	MaxConns string `yaml:"max_conns"`
+type Postgres struct {
+	User     string `yaml:"user" env-required:"true"`
+	Password string `yaml:"password" env-required:"true"`
+	Host     string `yaml:"host" env-required:"true"`
+	Port     string `yaml:"port" env-required:"true"`
+	DBName   string `yaml:"db_name" env-required:"true"`
+	MaxConns string `yaml:"max_conns" env-required:"true"`
 }
 
-type Cache struct {
-	Address  string `yaml:"address"`
-	Password string `yaml:"password"`
-	DB       int    `yaml:"db"`
+type Redis struct {
+	Address  string `yaml:"address" env-required:"true"`
+	Password string `yaml:"password" env-required:"true"`
+	DB       int    `yaml:"db" env-default:"0"`
 }
 
 func MustLoad() *Config {
