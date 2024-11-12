@@ -21,12 +21,12 @@ func NewPool(cfg *config.Postgres) (*pgxpool.Pool, error) {
 		cfg.MaxConns,
 	))
 	if err != nil {
-		return nil, fmt.Errorf("%s: failed to create new pool: %w", err)
+		return nil, fmt.Errorf("%s: failed to create new pool: %w", op, err)
 	}
 
 	err = pool.Ping(context.Background())
 	if err != nil {
-		return nil, fmt.Errorf("%s: failed to ping: %w", err)
+		return nil, fmt.Errorf("%s: failed to ping: %w", op, err)
 	}
 
 	return pool, nil
