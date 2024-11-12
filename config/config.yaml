@@ -5,14 +5,15 @@ http_server:
   port: "8080"
   idle_timeout: 4s
 
-database:
+postgres:
   user: "postgres"
   password: "postgres"
   host: "localhost"
   port: "5432"
   db_name: "postgres"
+  max_conns: 100
 
-cache:
+redis:
   address: "localhost:6379"
   password: "password"
   db: 0

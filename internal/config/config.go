@@ -7,10 +7,10 @@ import (
 )
 
 type Config struct {
-	ENV        string     `yaml:"ENV" env-default:"true"`
+	ENV        string     `yaml:"ENV" env-default:"dev"`
 	HTTPServer HTTPServer `yaml:"http_server"`
-	Database   Database   `yaml:"database"`
-	Cache      Cache      `yaml:"cache"`
+	Database   Database   `yaml:"postgres"`
+	Cache      Cache      `yaml:"redis"`
 }
 
 type HTTPServer struct {
@@ -24,7 +24,8 @@ type Database struct {
 	Password string `yaml:"password"`
 	Host     string `yaml:"host"`
 	Port     string `yaml:"port"`
-	DB       string `yaml:"db_name"`
+	DBName   string `yaml:"db_name"`
+	MaxConns string `yaml:"max_conns"`
 }
 
 type Cache struct {
