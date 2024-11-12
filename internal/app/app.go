@@ -6,6 +6,7 @@ import (
 	"github.com/Alhanaqtah/auth/internal/config"
 	"github.com/Alhanaqtah/auth/pkg/logger/sl"
 	"github.com/Alhanaqtah/auth/pkg/postgres"
+	"github.com/Alhanaqtah/auth/pkg/redis"
 )
 
 type App struct {
@@ -39,5 +40,11 @@ func (a *App) Start() {
 
 	_ = db
 
-	// Cache conn
+	redis, err := redis.New(&a.cfg.Redis)
+	if err != nil {
+		log.Error("failed to establish connection with redis", sl.Err(err))
+		return
+	}
+
+	_ = redis
 }
