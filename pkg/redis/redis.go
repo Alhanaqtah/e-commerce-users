@@ -21,7 +21,7 @@ func New(cfg *config.Redis) (*redis.Client, error) {
 	)
 
 	if err := c.Ping(context.Background()).Err(); err != nil {
-		return nil, fmt.Errorf("%s: failed to ping, %w", op, err)
+		return nil, fmt.Errorf("%s: failed to ping: %w", op, err)
 	}
 
 	return c, nil
