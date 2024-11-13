@@ -1,6 +1,7 @@
 package config
 
 import (
+	"os"
 	"time"
 
 	"github.com/ilyakaznacheev/cleanenv"
@@ -11,6 +12,7 @@ type Config struct {
 	HTTPServer HTTPServer `yaml:"http_server" env-required:"true"`
 	Postgres   Postgres   `yaml:"postgres" env-required:"true"`
 	Redis      Redis      `yaml:"redis" env-required:"true"`
+	Tokens     Tokens     `yaml:"tokens"`
 }
 
 type HTTPServer struct {
@@ -34,10 +36,21 @@ type Redis struct {
 	DB       int    `yaml:"db" env-default:"0"`
 }
 
+type Tokens struct {
+	Secret     string        `yaml:"secret"`
+	AccessTTL  time.Duration `yaml:"access_ttl"`
+	RefreshTTL time.Duration `yaml:"refresh_ttl"`
+}
+
 func MustLoad() *Config {
 	var cfg Config
 
-	err := cleanenv.ReadConfig("config/config.yaml", &cfg)
+	confPath := os.Getenv("AUTH_CONF_PATH")
+	if confPath == "" {
+		panic("AUTH_CONF_PATH not found")
+	}
+
+	err := cleanenv.ReadConfig(confPath, &cfg)
 	if err != nil {
 		panic(err)
 	}

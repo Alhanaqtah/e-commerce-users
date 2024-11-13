@@ -17,3 +17,8 @@ redis:
   address: "localhost:6379"
   password: "secret-password"
   db: 0
+
+tokens:
+  secret: "secret-key"
+  access_ttl: 900s # 15 mins
+  refresh_ttl: 900s # 15 mins
