@@ -15,7 +15,6 @@ func main() {
 	cfg := config.MustLoad()
 
 	log := logger.New(cfg.ENV)
-
 	log.Info("starting server", slog.String("port", cfg.HTTPServer.Port))
 
 	app := app.New(cfg, log)
@@ -26,6 +25,8 @@ func main() {
 	signal.Notify(stop, syscall.SIGTERM, syscall.SIGINT)
 
 	<-stop
+	log.Info("shutting down server...")
 
 	app.Stop()
+	log.Info("server shutted down successfully")
 }

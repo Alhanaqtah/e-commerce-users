@@ -15,5 +15,5 @@ postgres:
 
 redis:
   address: "localhost:6379"
-  password: "password"
+  password: "secret-password"
   db: 0
