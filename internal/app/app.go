@@ -2,7 +2,6 @@ package app
 
 import (
 	"log/slog"
-	"os"
 
 	"github.com/Alhanaqtah/auth/internal/config"
 	"github.com/Alhanaqtah/auth/pkg/logger/sl"
@@ -16,8 +15,8 @@ import (
 type App struct {
 	cfg   *config.Config
 	log   *slog.Logger
-	pg    *pgxpool.Pool
-	redis *redis.Client
+	strg  *pgxpool.Pool
+	cache *redis.Client
 }
 
 func New(cfg *config.Config, log *slog.Logger) *App {
@@ -36,18 +35,18 @@ func (a *App) Start() {
 	log.Debug("initializing server...")
 
 	// Initialize Postgres
-	if err := a.initPostgres(); err != nil {
-		log.Error("failed to establish connection with postgres", sl.Err(err))
-		os.Exit(1)
+	if err := a.initStorage(); err != nil {
+		log.Error("failed to establish connection with storage", sl.Err(err))
+		return
 	}
-	log.Debug("connection with postgres initialized successfully")
+	log.Debug("connection with storage initialized successfully")
 
 	// Initialize Redis
-	if err := a.initRedis(); err != nil {
-		log.Error("failed to establish connection with redis", sl.Err(err))
-		os.Exit(1)
+	if err := a.initCache(); err != nil {
+		log.Error("failed to establish connection with cache", sl.Err(err))
+		return
 	}
-	log.Debug("connection with redis initialized successfully")
+	log.Debug("connection with cache initialized successfully")
 }
 
 // Stop gracefully closes all connections
@@ -56,29 +55,31 @@ func (a *App) Stop() {
 
 	log := a.log.With(slog.String("op", op))
 
-	if err := a.redis.Close(); err != nil {
-		log.Error("failed to close connection with redis", sl.Err(err))
+	if err := a.cache.Close(); err != nil {
+		log.Error("failed to close connection with cache", sl.Err(err))
 	}
 
-	a.pg.Close()
+	a.strg.Close()
 }
 
-// initPostgres initializes the Postgres connection
-func (a *App) initPostgres() error {
-	pg, err := postgres.NewPool(&a.cfg.Postgres)
+// initStorage initializes connection with storage
+func (a *App) initStorage() error {
+	storage, err := postgres.NewPool(&a.cfg.Postgres)
 	if err != nil {
 		return err
 	}
-	a.pg = pg
+	a.strg = storage
+
 	return nil
 }
 
-// initRedis initializes the Redis connection
-func (a *App) initRedis() error {
-	rds, err := rds.New(&a.cfg.Redis)
+// initCache initializes connection with cache
+func (a *App) initCache() error {
+	cache, err := rds.New(&a.cfg.Redis)
 	if err != nil {
 		return err
 	}
-	a.redis = rds
+	a.cache = cache
+
 	return nil
 }
