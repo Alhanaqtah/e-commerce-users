@@ -39,6 +39,7 @@ func (a *App) Start() {
 		log.Error("failed to establish connection with storage", sl.Err(err))
 		return
 	}
+
 	log.Debug("connection with storage initialized successfully")
 
 	// Initialize Redis
@@ -46,6 +47,7 @@ func (a *App) Start() {
 		log.Error("failed to establish connection with cache", sl.Err(err))
 		return
 	}
+
 	log.Debug("connection with cache initialized successfully")
 }
 
@@ -68,6 +70,7 @@ func (a *App) initStorage() error {
 	if err != nil {
 		return err
 	}
+
 	a.strg = storage
 
 	return nil
@@ -79,6 +82,7 @@ func (a *App) initCache() error {
 	if err != nil {
 		return err
 	}
+
 	a.cache = cache
 
 	return nil
