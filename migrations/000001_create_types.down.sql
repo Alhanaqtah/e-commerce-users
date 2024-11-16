@@ -1,1 +1,0 @@
-DROP ENUM IF EXISTS role;
