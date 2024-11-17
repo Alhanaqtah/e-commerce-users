@@ -13,19 +13,19 @@ import (
 	"github.com/go-chi/render"
 )
 
-type AuthCase interface {
+type AuthService interface {
 	SignUp(email, password string) error
 }
 
 type Controller struct {
-	ac     AuthCase
+	as     AuthService
 	tCfg   *config.Tokens
 	log    *slog.Logger
 	valdtr *validator.Validate
 }
 
 type Config struct {
-	AuthCase     AuthCase
+	AuthService  AuthService
 	TokensConfig *config.Tokens
 	Log          *slog.Logger
 }
@@ -37,7 +37,7 @@ type credentials struct {
 
 func New(cfg *Config) *Controller {
 	return &Controller{
-		ac:     cfg.AuthCase,
+		as:     cfg.AuthService,
 		tCfg:   cfg.TokensConfig,
 		log:    cfg.Log,
 		valdtr: validator.New(),
@@ -78,7 +78,7 @@ func (c *Controller) signUp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := c.ac.SignUp(creds.Email, creds.Password); err != nil {
+	if err := c.as.SignUp(creds.Email, creds.Password); err != nil {
 		render.Status(r, http.StatusInternalServerError)
 		return
 	}
