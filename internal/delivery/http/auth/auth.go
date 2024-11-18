@@ -1,20 +1,22 @@
 package auth
 
 import (
+	"context"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/Alhanaqtah/auth/internal/config"
 	"github.com/Alhanaqtah/auth/pkg/logger/sl"
-	"github.com/go-playground/validator/v10"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/render"
+	"github.com/go-playground/validator/v10"
 )
 
 type AuthService interface {
-	SignUp(email, password string) error
+	SignUp(ctx context.Context, name, surname, birthdate, email, password string) error
 }
 
 type Controller struct {
@@ -30,9 +32,12 @@ type Config struct {
 	Log          *slog.Logger
 }
 
-type credentials struct {
-	Email    string `json:"email" validate:"required,email"`
-	Password string `json:"password" validate:"required"`
+type signUpCredentials struct {
+	Name      string    `json:"name" validate:"required"`
+	Surname   string    `json:"surname" validate:"required"`
+	Birthdate time.Time `json:"birthdate" validate:"required"`
+	Email     string    `json:"email" validate:"required,email"`
+	Password  string    `json:"password" validate:"required"`
 }
 
 func New(cfg *Config) *Controller {
@@ -47,10 +52,8 @@ func New(cfg *Config) *Controller {
 func (c *Controller) Register() *chi.Mux {
 	r := chi.NewRouter()
 
-	r.Route("/auth", func(r chi.Router) {
-		r.Post("/sign-up", c.signUp)
-		r.Post("/sign-in", c.signIn)
-	})
+	r.Post("/sign-up", c.signUp)
+	r.Post("/sign-in", c.signIn)
 
 	return r
 }
@@ -63,14 +66,13 @@ func (c *Controller) signUp(w http.ResponseWriter, r *http.Request) {
 		slog.String("req_id", middleware.GetReqID(r.Context())),
 	)
 
-	var creds credentials
+	var creds signUpCredentials
+	defer r.Body.Close()
 	if err := render.DecodeJSON(r.Body, &creds); err != nil {
-		log.Debug("failed to parse JSON", sl.Err(err), sl.Err(err))
+		log.Debug("failed to parse JSON", sl.Err(err))
 		render.Status(r, http.StatusUnprocessableEntity)
 		return
 	}
-
-	defer r.Body.Close()
 
 	if err := c.valdtr.Struct(creds); err != nil {
 		log.Error("some fields are invalid", sl.Err(err))
@@ -78,7 +80,13 @@ func (c *Controller) signUp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := c.as.SignUp(creds.Email, creds.Password); err != nil {
+	if err := c.as.SignUp(r.Context(),
+		creds.Name,
+		creds.Surname,
+		creds.Birthdate.Format("2000-01-01"),
+		creds.Email,
+		creds.Password,
+	); err != nil {
 		render.Status(r, http.StatusInternalServerError)
 		return
 	}

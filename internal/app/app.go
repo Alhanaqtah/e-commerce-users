@@ -2,8 +2,12 @@ package app
 
 import (
 	"log/slog"
+	"os"
 
+	apphttp "github.com/Alhanaqtah/auth/internal/app/http"
 	"github.com/Alhanaqtah/auth/internal/config"
+	user_repo "github.com/Alhanaqtah/auth/internal/repositories/user"
+	auth_service "github.com/Alhanaqtah/auth/internal/services/auth"
 	"github.com/Alhanaqtah/auth/pkg/logger/sl"
 	"github.com/Alhanaqtah/auth/pkg/postgres"
 	rds "github.com/Alhanaqtah/auth/pkg/redis"
@@ -13,10 +17,11 @@ import (
 )
 
 type App struct {
-	cfg   *config.Config
-	log   *slog.Logger
-	strg  *pgxpool.Pool
-	cache *redis.Client
+	cfg     *config.Config
+	log     *slog.Logger
+	strg    *pgxpool.Pool
+	cache   *redis.Client
+	httpSrv *apphttp.App
 }
 
 func New(cfg *config.Config, log *slog.Logger) *App {
@@ -32,12 +37,10 @@ func (a *App) Start() {
 
 	log := a.log.With(slog.String("op", op))
 
-	log.Debug("initializing server...")
-
 	// Initialize Postgres
 	if err := a.initStorage(); err != nil {
 		log.Error("failed to establish connection with storage", sl.Err(err))
-		return
+		os.Exit(1)
 	}
 
 	log.Debug("connection with storage initialized successfully")
@@ -45,23 +48,51 @@ func (a *App) Start() {
 	// Initialize Redis
 	if err := a.initCache(); err != nil {
 		log.Error("failed to establish connection with cache", sl.Err(err))
-		return
+		os.Exit(1)
 	}
 
 	log.Debug("connection with cache initialized successfully")
+
+	authSrvc := auth_service.New(
+		&auth_service.Config{
+			Repo: user_repo.New(a.strg, log),
+			Log:  log,
+		},
+	)
+
+	httpServer := apphttp.New(
+		authSrvc,
+		log,
+		a.cfg,
+	)
+
+	if err := httpServer.Start(); err != nil {
+		log.Error("failed to start http server", sl.Err(err))
+		os.Exit(1)
+	}
+
+	a.httpSrv = httpServer
 }
 
 // Stop gracefully closes all connections
 func (a *App) Stop() {
 	const op = "app.Stop"
 
-	log := a.log.With(slog.String("op", op))
-
-	if err := a.cache.Close(); err != nil {
-		log.Error("failed to close connection with cache", sl.Err(err))
+	if err := a.httpSrv.Stop(); err != nil {
+		a.log.Error("failed to stop server gracefully", sl.Err(err))
 	}
 
-	a.strg.Close()
+	log := a.log.With(slog.String("op", op))
+
+	if a.strg != nil {
+		a.strg.Close()
+	}
+
+	if a.cache != nil {
+		if err := a.cache.Close(); err != nil {
+			log.Error("failed to close connection with cache", sl.Err(err))
+		}
+	}
 }
 
 // initStorage initializes connection with storage
