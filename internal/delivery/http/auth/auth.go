@@ -2,11 +2,13 @@ package auth
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"net/http"
 	"time"
 
 	"github.com/Alhanaqtah/auth/internal/config"
+	"github.com/Alhanaqtah/auth/internal/services"
 	"github.com/Alhanaqtah/auth/pkg/logger/sl"
 
 	"github.com/go-chi/chi/v5"
@@ -70,13 +72,13 @@ func (c *Controller) signUp(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	if err := render.DecodeJSON(r.Body, &creds); err != nil {
 		log.Debug("failed to parse JSON", sl.Err(err))
-		render.Status(r, http.StatusUnprocessableEntity)
+		w.WriteHeader(http.StatusUnprocessableEntity)
 		return
 	}
 
 	if err := c.valdtr.Struct(creds); err != nil {
 		log.Error("some fields are invalid", sl.Err(err))
-		render.Status(r, http.StatusBadRequest)
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
@@ -87,7 +89,12 @@ func (c *Controller) signUp(w http.ResponseWriter, r *http.Request) {
 		creds.Email,
 		creds.Password,
 	); err != nil {
-		render.Status(r, http.StatusInternalServerError)
+		if errors.Is(err, services.ErrExists) {
+			w.WriteHeader(http.StatusConflict)
+			return
+		}
+
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 

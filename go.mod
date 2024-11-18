@@ -3,6 +3,7 @@ module github.com/Alhanaqtah/auth
 go 1.23.1
 
 require (
+	github.com/go-chi/chi v1.5.5
 	github.com/go-chi/render v1.0.3
 	github.com/go-playground/validator/v10 v10.22.1
 	github.com/golang-migrate/migrate/v4 v4.18.1

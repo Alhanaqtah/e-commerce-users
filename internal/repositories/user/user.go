@@ -33,12 +33,19 @@ func (ur *UserRepo) GetByEmail(ctx context.Context, email string) (*models.User,
 	log := ur.log.With(slog.String("op", op))
 
 	row := ur.db.QueryRow(ctx, `
-	SELECT name, surname, birthdate, role, email, password, created_at
+	SELECT name, surname, birthdate, role, email, created_at
 	FROM users
 	WHERE email = $1`, email)
 
 	var user models.User
-	err := row.Scan(&user)
+	err := row.Scan(
+		&user.Name,
+		&user.Surname,
+		&user.Birthdate,
+		&user.Role,
+		&user.Email,
+		&user.CreatedAt,
+	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			log.Info("user not found", slog.String("email", email))
@@ -58,7 +65,7 @@ func (ur *UserRepo) CreateUser(ctx context.Context, name, surname, birthdate, em
 	log := ur.log.With(slog.String("op", op))
 
 	_, err := ur.db.Exec(ctx, `
-	INSERT INTO users (name, surname, birthdate, email, password)
+	INSERT INTO users (name, surname, birthdate, email, pass_hash)
 	VALUES ($1, $2, $3, $4, $5)
 	`, name, surname, birthdate, email, passHash)
 

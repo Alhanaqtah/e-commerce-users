@@ -11,6 +11,7 @@ import (
 	auth_http "github.com/Alhanaqtah/auth/internal/delivery/http/auth"
 	auth_service "github.com/Alhanaqtah/auth/internal/services/auth"
 
+	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -25,6 +26,11 @@ func New(
 	cfg *config.Config,
 ) *App {
 	r := chi.NewRouter()
+
+	r.Use(middleware.RequestID)
+	r.Use(middleware.RealIP)
+	// r.Use(middleware.Logger)
+	r.Use(middleware.Recoverer)
 
 	r.Route("/api/v1", func(r chi.Router) {
 		authHTTPCtrl := auth_http.New(

@@ -2,12 +2,13 @@ package auth
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 
 	"github.com/Alhanaqtah/auth/internal/models"
+	"github.com/Alhanaqtah/auth/internal/repositories"
 	"github.com/Alhanaqtah/auth/internal/services"
-	"github.com/Alhanaqtah/auth/pkg/logger/sl"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -39,8 +40,7 @@ func (s *Service) SignUp(ctx context.Context, name, surname, birthdate, email, p
 	log := s.log.With(slog.String("op", op))
 
 	user, err := s.usrRepo.GetByEmail(ctx, email)
-	if err != nil {
-		log.Error("failed to get user", sl.Err(err))
+	if err != nil && !errors.Is(err, repositories.ErrNotFound) {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
@@ -62,7 +62,10 @@ func (s *Service) SignUp(ctx context.Context, name, surname, birthdate, email, p
 		email,
 		passHash,
 	); err != nil {
-		log.Error("failed to create user", sl.Err(err))
+		if errors.Is(err, repositories.ErrExists) {
+			return fmt.Errorf("%s: %w", op, services.ErrExists)
+		}
+
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
