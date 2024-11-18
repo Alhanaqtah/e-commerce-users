@@ -1,4 +1,4 @@
-module github.com/Alhanaqtah/auth
+module github.com/Alhanaqtah/e-commerce/users
 
 go 1.23.1
 

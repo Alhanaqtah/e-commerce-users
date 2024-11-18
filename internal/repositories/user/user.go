@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/Alhanaqtah/auth/internal/models"
-	"github.com/Alhanaqtah/auth/internal/repositories"
-	"github.com/Alhanaqtah/auth/pkg/logger/sl"
+	"github.com/Alhanaqtah/e-commerce/users/internal/models"
+	"github.com/Alhanaqtah/e-commerce/users/internal/repositories"
+	"github.com/Alhanaqtah/e-commerce/users/pkg/logger/sl"
 
 	"github.com/jackc/pgconn"
 	"github.com/jackc/pgx/v5"

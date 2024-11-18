@@ -7,9 +7,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/Alhanaqtah/auth/internal/config"
-	auth_http "github.com/Alhanaqtah/auth/internal/delivery/http/auth"
-	auth_service "github.com/Alhanaqtah/auth/internal/services/auth"
+	"github.com/Alhanaqtah/e-commerce/users/internal/config"
+	auth_http "github.com/Alhanaqtah/e-commerce/users/internal/delivery/http/auth"
+	auth_service "github.com/Alhanaqtah/e-commerce/users/internal/services/auth"
 
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/chi/v5"

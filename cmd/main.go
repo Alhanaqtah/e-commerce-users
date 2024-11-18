@@ -6,9 +6,9 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/Alhanaqtah/auth/internal/app"
-	"github.com/Alhanaqtah/auth/internal/config"
-	"github.com/Alhanaqtah/auth/pkg/logger"
+	"github.com/Alhanaqtah/e-commerce/users/internal/app"
+	"github.com/Alhanaqtah/e-commerce/users/internal/config"
+	"github.com/Alhanaqtah/e-commerce/users/pkg/logger"
 )
 
 func main() {

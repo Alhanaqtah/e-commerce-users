@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/Alhanaqtah/auth/internal/models"
-	"github.com/Alhanaqtah/auth/internal/repositories"
-	"github.com/Alhanaqtah/auth/internal/services"
+	"github.com/Alhanaqtah/e-commerce/users/internal/models"
+	"github.com/Alhanaqtah/e-commerce/users/internal/repositories"
+	"github.com/Alhanaqtah/e-commerce/users/internal/services"
 	"golang.org/x/crypto/bcrypt"
 )
 
