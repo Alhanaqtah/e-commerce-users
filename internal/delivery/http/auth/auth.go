@@ -85,7 +85,7 @@ func (c *Controller) signUp(w http.ResponseWriter, r *http.Request) {
 	if err := c.as.SignUp(r.Context(),
 		creds.Name,
 		creds.Surname,
-		creds.Birthdate.Format("2000-01-01"),
+		creds.Birthdate.Format("2006-01-02"),
 		creds.Email,
 		creds.Password,
 	); err != nil {
