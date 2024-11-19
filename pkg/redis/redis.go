@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/Alhanaqtah/e-commerce/users/internal/config"
+	"e-commerce-users/internal/config"
 
 	"github.com/redis/go-redis/v9"
 )

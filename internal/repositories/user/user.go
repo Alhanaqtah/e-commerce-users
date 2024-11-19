@@ -6,11 +6,10 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/Alhanaqtah/e-commerce/users/internal/models"
-	"github.com/Alhanaqtah/e-commerce/users/internal/repositories"
-	"github.com/Alhanaqtah/e-commerce/users/pkg/logger/sl"
+	"e-commerce-users/internal/models"
+	"e-commerce-users/internal/repositories"
+	"e-commerce-users/pkg/logger/sl"
 
-	"github.com/jackc/pgconn"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -70,14 +69,6 @@ func (ur *UserRepo) CreateUser(ctx context.Context, name, surname, birthdate, em
 	`, name, surname, birthdate, email, passHash)
 
 	if err != nil {
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) {
-			if pgErr.Code == "23505" { // unique_violation
-				log.Info("user already exists", slog.String("email", email))
-				return fmt.Errorf("%s: %w", op, repositories.ErrExists)
-			}
-		}
-
 		log.Error("failed to create user", slog.String("email", email), sl.Err(err))
 		return fmt.Errorf("%s: %w", op, err)
 	}

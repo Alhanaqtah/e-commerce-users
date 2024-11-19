@@ -7,9 +7,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/Alhanaqtah/e-commerce/users/internal/config"
-	"github.com/Alhanaqtah/e-commerce/users/internal/services"
-	"github.com/Alhanaqtah/e-commerce/users/pkg/logger/sl"
+	"e-commerce-users/internal/config"
+	"e-commerce-users/internal/services"
+	"e-commerce-users/pkg/logger/sl"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
