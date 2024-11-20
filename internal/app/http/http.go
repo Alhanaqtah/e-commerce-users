@@ -35,9 +35,9 @@ func New(
 	r.Route("/api/v1", func(r chi.Router) {
 		authHTTPCtrl := auth_http.New(
 			&auth_http.Config{
-				AuthService:  authSrvc,
-				TokensConfig: &cfg.Tokens,
-				Log:          log,
+				AuthService: authSrvc,
+				Log:         log,
+				TknsCfg:     &cfg.Tokens,
 			},
 		)
 		r.Mount("/auth", authHTTPCtrl.Register())

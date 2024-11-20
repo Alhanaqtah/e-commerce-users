@@ -32,17 +32,20 @@ func (ur *UserRepo) GetByEmail(ctx context.Context, email string) (*models.User,
 	log := ur.log.With(slog.String("op", op))
 
 	row := ur.db.QueryRow(ctx, `
-	SELECT name, surname, birthdate, role, email, created_at
+	SELECT id, name, surname, birthdate, role, email, pass_hash, version, created_at
 	FROM users
 	WHERE email = $1`, email)
 
 	var user models.User
 	err := row.Scan(
+		&user.ID,
 		&user.Name,
 		&user.Surname,
 		&user.Birthdate,
 		&user.Role,
 		&user.Email,
+		&user.PassHash,
+		&user.Version,
 		&user.CreatedAt,
 	)
 	if err != nil {

@@ -2,7 +2,9 @@ package auth
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"time"
@@ -12,13 +14,13 @@ import (
 	"e-commerce-users/pkg/logger/sl"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/render"
 	"github.com/go-playground/validator/v10"
 )
 
 type AuthService interface {
 	SignUp(ctx context.Context, name, surname, birthdate, email, password string) error
+	SignIn(ctx context.Context, name, password string) (string, string, error)
 }
 
 type Controller struct {
@@ -29,9 +31,9 @@ type Controller struct {
 }
 
 type Config struct {
-	AuthService  AuthService
-	TokensConfig *config.Tokens
-	Log          *slog.Logger
+	AuthService AuthService
+	TknsCfg     *config.Tokens
+	Log         *slog.Logger
 }
 
 type signUpCredentials struct {
@@ -42,10 +44,20 @@ type signUpCredentials struct {
 	Password  string    `json:"password" validate:"required"`
 }
 
+type signInCredentials struct {
+	Email    string `json:"email" validate:"required,email"`
+	Password string `json:"password" validate:"required"`
+}
+
+type tokens struct {
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+}
+
 func New(cfg *Config) *Controller {
 	return &Controller{
 		as:     cfg.AuthService,
-		tCfg:   cfg.TokensConfig,
+		tCfg:   cfg.TknsCfg,
 		log:    cfg.Log,
 		valdtr: validator.New(),
 	}
@@ -65,7 +77,6 @@ func (c *Controller) signUp(w http.ResponseWriter, r *http.Request) {
 
 	log := c.log.With(
 		slog.String("op", op),
-		slog.String("req_id", middleware.GetReqID(r.Context())),
 	)
 
 	var creds signUpCredentials
@@ -102,5 +113,50 @@ func (c *Controller) signUp(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Controller) signIn(w http.ResponseWriter, r *http.Request) {
-	panic("implement me")
+	const op = "controllers.auth.signUp"
+
+	log := c.log.With(
+		slog.String("op", op),
+	)
+
+	var creds signInCredentials
+	defer r.Body.Close()
+	if err := render.DecodeJSON(r.Body, &creds); err != nil {
+		log.Debug("failed to parse JSON", sl.Err(err))
+		w.WriteHeader(http.StatusUnprocessableEntity)
+		return
+	}
+
+	if err := c.valdtr.Struct(creds); err != nil {
+		log.Error("some fields are invalid", sl.Err(err))
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	assessToken, refreshToken, err := c.as.SignIn(r.Context(), creds.Email, creds.Password)
+	if err != nil {
+		if errors.Is(err, services.ErrInvalidCredentials) {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	render.Status(r, http.StatusOK)
+	render.Render(w, r, tokens{
+		AccessToken:  assessToken,
+		RefreshToken: refreshToken,
+	})
+}
+
+func (t tokens) Render(w http.ResponseWriter, r *http.Request) error {
+	w.Header().Set("Content-Type", "application/json")
+
+	if err := json.NewEncoder(w).Encode(t); err != nil {
+		return fmt.Errorf("failed to encode tokens: %w", err)
+	}
+
+	return nil
 }

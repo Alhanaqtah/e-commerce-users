@@ -9,5 +9,7 @@ type User struct {
 	Birthdate time.Time `json:"birthdate"`
 	Role      string    `json:"role"`
 	Email     string    `json:"email"`
+	PassHash  []byte    `json:"-"`
+	Version   int       `json:"-"`
 	CreatedAt time.Time `json:"created_at"`
 }
