@@ -13,7 +13,6 @@ require (
 	github.com/ilyakaznacheev/cleanenv v1.5.0
 	github.com/jackc/pgx/v5 v5.7.1
 	github.com/redis/go-redis/v9 v9.7.0
-	go.mongodb.org/mongo-driver v1.7.5
 	golang.org/x/crypto v0.29.0
 )
 

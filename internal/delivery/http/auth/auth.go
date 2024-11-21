@@ -2,9 +2,7 @@ package auth
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
-	"fmt"
 	"log/slog"
 	"net/http"
 	"time"
@@ -32,8 +30,8 @@ type Controller struct {
 
 type Config struct {
 	AuthService AuthService
-	TknsCfg     *config.Tokens
 	Log         *slog.Logger
+	TknsCfg     *config.Tokens
 }
 
 type signUpCredentials struct {
@@ -57,8 +55,8 @@ type tokens struct {
 func New(cfg *Config) *Controller {
 	return &Controller{
 		as:     cfg.AuthService,
-		tCfg:   cfg.TknsCfg,
 		log:    cfg.Log,
+		tCfg:   cfg.TknsCfg,
 		valdtr: validator.New(),
 	}
 }
@@ -152,11 +150,5 @@ func (c *Controller) signIn(w http.ResponseWriter, r *http.Request) {
 }
 
 func (t tokens) Render(w http.ResponseWriter, r *http.Request) error {
-	w.Header().Set("Content-Type", "application/json")
-
-	if err := json.NewEncoder(w).Encode(t); err != nil {
-		return fmt.Errorf("failed to encode tokens: %w", err)
-	}
-
 	return nil
 }

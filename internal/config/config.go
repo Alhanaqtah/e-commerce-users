@@ -12,7 +12,7 @@ type Config struct {
 	HTTPServer HTTPServer `yaml:"http_server" env-required:"true"`
 	Postgres   Postgres   `yaml:"postgres" env-required:"true"`
 	Redis      Redis      `yaml:"redis" env-required:"true"`
-	Tokens     Tokens     `yaml:"tokens"`
+	Tokens     Tokens     `yaml:"tokens" env-required:"true"`
 }
 
 type HTTPServer struct {
@@ -37,9 +37,9 @@ type Redis struct {
 }
 
 type Tokens struct {
-	Secret     string        `yaml:"secret"`
-	AccessTTL  time.Duration `yaml:"access_ttl"`
-	RefreshTTL time.Duration `yaml:"refresh_ttl"`
+	Secret     string        `yaml:"secret" env-required:"true"`
+	AccessTTL  time.Duration `yaml:"access_ttl" env-required:"true"`
+	RefreshTTL time.Duration `yaml:"refresh_ttl" env-required:"true"`
 }
 
 func MustLoad() *Config {
