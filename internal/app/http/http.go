@@ -32,6 +32,11 @@ func New(
 	// r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
+	r.Post("/healthcheck", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		return
+	})
+
 	r.Route("/api/v1", func(r chi.Router) {
 		authHTTPCtrl := auth_http.New(
 			&auth_http.Config{
