@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"e-commerce-users/internal/config"
+	http_lib "e-commerce-users/internal/lib/http"
 	"e-commerce-users/internal/services"
 	"e-commerce-users/pkg/logger/sl"
 
@@ -24,13 +25,11 @@ type AuthService interface {
 type Controller struct {
 	as     AuthService
 	tCfg   *config.Tokens
-	log    *slog.Logger
 	valdtr *validator.Validate
 }
 
 type Config struct {
 	AuthService AuthService
-	Log         *slog.Logger
 	TknsCfg     *config.Tokens
 }
 
@@ -55,7 +54,6 @@ type tokens struct {
 func New(cfg *Config) *Controller {
 	return &Controller{
 		as:     cfg.AuthService,
-		log:    cfg.Log,
 		tCfg:   cfg.TknsCfg,
 		valdtr: validator.New(),
 	}
@@ -73,9 +71,8 @@ func (c *Controller) Register() *chi.Mux {
 func (c *Controller) signUp(w http.ResponseWriter, r *http.Request) {
 	const op = "controllers.auth.signUp"
 
-	log := c.log.With(
-		slog.String("op", op),
-	)
+	log := http_lib.GetCtxLogger(r.Context())
+	log = log.With(slog.String("op", op))
 
 	var creds signUpCredentials
 	defer r.Body.Close()
@@ -113,9 +110,8 @@ func (c *Controller) signUp(w http.ResponseWriter, r *http.Request) {
 func (c *Controller) signIn(w http.ResponseWriter, r *http.Request) {
 	const op = "controllers.auth.signUp"
 
-	log := c.log.With(
-		slog.String("op", op),
-	)
+	log := http_lib.GetCtxLogger(r.Context())
+	log = log.With(slog.String("op", op))
 
 	var creds signInCredentials
 	defer r.Body.Close()

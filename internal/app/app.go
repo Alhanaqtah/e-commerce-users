@@ -55,8 +55,7 @@ func (a *App) Start() {
 
 	authSrvc := auth_service.New(
 		&auth_service.Config{
-			Repo:    user_repo.New(a.strg, log),
-			Log:     log,
+			Repo:    user_repo.New(a.strg),
 			TknsCfg: &a.cfg.Tokens,
 		},
 	)

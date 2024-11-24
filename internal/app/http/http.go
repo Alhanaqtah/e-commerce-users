@@ -9,6 +9,7 @@ import (
 
 	"e-commerce-users/internal/config"
 	auth_http "e-commerce-users/internal/delivery/http/auth"
+	http_lib "e-commerce-users/internal/lib/http"
 	auth_service "e-commerce-users/internal/services/auth"
 
 	"github.com/go-chi/chi/middleware"
@@ -28,8 +29,8 @@ func New(
 	r := chi.NewRouter()
 
 	r.Use(middleware.RequestID)
-	r.Use(middleware.RealIP)
-	// r.Use(middleware.Logger)
+	r.Use(http_lib.TraceID)
+	r.Use(http_lib.Logging(log))
 	r.Use(middleware.Recoverer)
 
 	r.Post("/healthcheck", func(w http.ResponseWriter, r *http.Request) {
@@ -41,7 +42,6 @@ func New(
 		authHTTPCtrl := auth_http.New(
 			&auth_http.Config{
 				AuthService: authSrvc,
-				Log:         log,
 				TknsCfg:     &cfg.Tokens,
 			},
 		)

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"e-commerce-users/internal/config"
+	http_lib "e-commerce-users/internal/lib/http"
 	jwt_lib "e-commerce-users/internal/lib/jwt"
 	"e-commerce-users/internal/models"
 	"e-commerce-users/internal/repositories"
@@ -24,20 +25,17 @@ type UserRepo interface {
 
 type Service struct {
 	usrRepo UserRepo
-	log     *slog.Logger
 	TknsCfg *config.Tokens
 }
 
 type Config struct {
 	Repo    UserRepo
-	Log     *slog.Logger
 	TknsCfg *config.Tokens
 }
 
 func New(cfg *Config) *Service {
 	return &Service{
 		usrRepo: cfg.Repo,
-		log:     cfg.Log,
 		TknsCfg: cfg.TknsCfg,
 	}
 }
@@ -45,7 +43,8 @@ func New(cfg *Config) *Service {
 func (s *Service) SignUp(ctx context.Context, name, surname, birthdate, email, password string) error {
 	const op = "services.auth.SignUp"
 
-	log := s.log.With(slog.String("op", op))
+	log := http_lib.GetCtxLogger(ctx)
+	log = log.With(slog.String("op", op))
 
 	user, err := s.usrRepo.GetByEmail(ctx, email)
 	if err != nil && !errors.Is(err, repositories.ErrNotFound) {
@@ -83,7 +82,8 @@ func (s *Service) SignUp(ctx context.Context, name, surname, birthdate, email, p
 func (s *Service) SignIn(ctx context.Context, email, password string) (string, string, error) {
 	const op = "services.auth.SignIn"
 
-	log := s.log.With(slog.String("op", op))
+	log := http_lib.GetCtxLogger(ctx)
+	log = log.With(slog.String("op", op))
 
 	user, err := s.usrRepo.GetByEmail(ctx, email)
 	if err != nil {

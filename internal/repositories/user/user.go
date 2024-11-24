@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	http_lib "e-commerce-users/internal/lib/http"
 	"e-commerce-users/internal/models"
 	"e-commerce-users/internal/repositories"
 	"e-commerce-users/pkg/logger/sl"
@@ -19,17 +20,17 @@ type UserRepo struct {
 	log *slog.Logger
 }
 
-func New(pool *pgxpool.Pool, log *slog.Logger) *UserRepo {
+func New(pool *pgxpool.Pool) *UserRepo {
 	return &UserRepo{
-		db:  pool,
-		log: log,
+		db: pool,
 	}
 }
 
 func (ur *UserRepo) GetByEmail(ctx context.Context, email string) (*models.User, error) {
 	const op = "repositories.auth.GetByEmail"
 
-	log := ur.log.With(slog.String("op", op))
+	log := http_lib.GetCtxLogger(ctx)
+	log = log.With(slog.String("op", op))
 
 	row := ur.db.QueryRow(ctx, `
 	SELECT id, name, surname, birthdate, role, email, pass_hash, version, created_at
@@ -64,7 +65,8 @@ func (ur *UserRepo) GetByEmail(ctx context.Context, email string) (*models.User,
 func (ur *UserRepo) CreateUser(ctx context.Context, name, surname, birthdate, email string, passHash []byte) error {
 	const op = "repositories.auth.CreateUser"
 
-	log := ur.log.With(slog.String("op", op))
+	log := http_lib.GetCtxLogger(ctx)
+	log = log.With(slog.String("op", op))
 
 	_, err := ur.db.Exec(ctx, `
 	INSERT INTO users (name, surname, birthdate, email, pass_hash)
