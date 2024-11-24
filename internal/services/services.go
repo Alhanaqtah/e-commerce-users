@@ -7,4 +7,8 @@ var (
 	ErrExists   = errors.New("exists")
 
 	ErrInvalidCredentials = errors.New("invalid credentials")
+
+	ErrTokenInvalid     = errors.New("token invalid")
+	ErrTokenBlacklisted = errors.New("token blacklisted")
+	ErrTokenExpired     = errors.New("token expired")
 )

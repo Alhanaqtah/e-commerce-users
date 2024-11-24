@@ -6,6 +6,7 @@ import (
 
 	apphttp "e-commerce-users/internal/app/http"
 	"e-commerce-users/internal/config"
+	cache_repo "e-commerce-users/internal/repositories/cache"
 	user_repo "e-commerce-users/internal/repositories/user"
 	auth_service "e-commerce-users/internal/services/auth"
 	"e-commerce-users/pkg/logger/sl"
@@ -56,6 +57,7 @@ func (a *App) Start() {
 	authSrvc := auth_service.New(
 		&auth_service.Config{
 			Repo:    user_repo.New(a.strg),
+			Cache:   cache_repo.New(a.cache),
 			TknsCfg: &a.cfg.Tokens,
 		},
 	)
