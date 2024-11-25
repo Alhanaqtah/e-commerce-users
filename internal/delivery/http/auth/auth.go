@@ -181,6 +181,10 @@ func (c *Controller) refresh(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "token expired", http.StatusUnauthorized)
 			return
 		}
+		if errors.Is(err, services.ErrUnexpectedTokenType) {
+			http.Error(w, "unexpected token type", http.StatusBadRequest)
+			return
+		}
 
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return

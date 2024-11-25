@@ -29,6 +29,7 @@ func NewAccessToken(
 		"sub":     id,
 		"role":    role,
 		"version": version,
+		"type":    "access",
 		"exp":     exp.Unix(),
 	})
 
@@ -51,6 +52,7 @@ func NewRefreshToken(
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"sub":     id,
 		"version": version,
+		"type":    "refresh",
 		"exp":     exp.Unix(),
 	})
 

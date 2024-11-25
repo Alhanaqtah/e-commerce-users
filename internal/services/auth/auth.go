@@ -168,6 +168,16 @@ func (s *Service) Refresh(ctx context.Context, refreshToken string) (string, str
 		return "", "", fmt.Errorf("%s: %w", op, err)
 	}
 
+	tknType, err := jwt_lib.GetClaim(claims, "sub")
+	if err != nil {
+		log.Error("failed to get user ID from claims", sl.Err(err))
+		return "", "", fmt.Errorf("%s: %w", op, err)
+	}
+	if tknType != "refresh" {
+		log.Warn("unexpected token type: expected 'refresh'")
+		return "", "", fmt.Errorf("%s: %w", op, services.ErrUnexpectedTokenType)
+	}
+
 	userID, err := jwt_lib.GetClaim(claims, "sub")
 	if err != nil {
 		log.Error("failed to get user ID from claims", sl.Err(err))

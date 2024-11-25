@@ -8,7 +8,8 @@ var (
 
 	ErrInvalidCredentials = errors.New("invalid credentials")
 
-	ErrTokenInvalid     = errors.New("token invalid")
-	ErrTokenBlacklisted = errors.New("token blacklisted")
-	ErrTokenExpired     = errors.New("token expired")
+	ErrTokenInvalid        = errors.New("token invalid")
+	ErrTokenBlacklisted    = errors.New("token blacklisted")
+	ErrTokenExpired        = errors.New("token expired")
+	ErrUnexpectedTokenType = errors.New("unexpected token type")
 )
