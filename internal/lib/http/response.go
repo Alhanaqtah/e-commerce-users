@@ -41,7 +41,7 @@ func ErrInternal(w http.ResponseWriter, r *http.Request) {
 	render.Status(r, http.StatusInternalServerError)
 	render.Render(w, r, Response{
 		Status:  StatusErr,
-		Message: "internal error",
+		Message: "Internal error",
 	})
 }
 
@@ -49,7 +49,7 @@ func ErrUnprocessableEntity(w http.ResponseWriter, r *http.Request) {
 	render.Status(r, http.StatusUnprocessableEntity)
 	render.Render(w, r, Response{
 		Status:  StatusErr,
-		Message: "unprocessable entity",
+		Message: "Unprocessable entity",
 	})
 }
 
@@ -65,7 +65,7 @@ func ErrBadRequest(w http.ResponseWriter, r *http.Request) {
 	render.Status(r, http.StatusBadRequest)
 	render.Render(w, r, Response{
 		Status:  StatusErr,
-		Message: "bad request",
+		Message: "Bad request",
 	})
 }
 
@@ -87,7 +87,7 @@ func ErrInvalid(w http.ResponseWriter, r *http.Request, err error) {
 	render.Status(r, http.StatusBadRequest)
 	render.Render(w, r, Response{
 		Status:  StatusErr,
-		Message: "some fields are invalid",
+		Message: "Some fields are invalid",
 		Errors:  errs,
 	})
 }

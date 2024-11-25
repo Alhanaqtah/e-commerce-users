@@ -82,8 +82,14 @@ func FromString(token, secret string) (jwt.MapClaims, error) {
 		return []byte(secret), nil
 	})
 	if err != nil {
-		if ve, ok := err.(*jwt.ValidationError); ok && ve.Errors == jwt.ValidationErrorExpired {
-			return nil, fmt.Errorf("%s: %w", op, ErrExpired)
+		var jwtErr *jwt.ValidationError
+		if errors.As(err, &jwtErr) {
+			if jwtErr.Errors == jwt.ValidationErrorExpired {
+				return nil, fmt.Errorf("%s: %w", op, ErrExpired)
+			}
+			if jwtErr.Errors == jwt.ValidationErrorSignatureInvalid {
+				return nil, fmt.Errorf("%s: %w", op, ErrInvalid)
+			}
 		}
 
 		return nil, fmt.Errorf("%s: %w", op, err)

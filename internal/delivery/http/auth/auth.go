@@ -21,6 +21,7 @@ type AuthService interface {
 	SignUp(ctx context.Context, name, surname, birthdate, email, password string) error
 	SignIn(ctx context.Context, name, password string) (string, string, error)
 	Refresh(ctx context.Context, refreshToken string) (string, string, error)
+	Logout(ctx context.Context, accessToken, refreshToken string) error
 }
 
 type Controller struct {
@@ -70,12 +71,13 @@ func (c *Controller) Register() *chi.Mux {
 	r.Post("/sign-up", c.signUp)
 	r.Post("/sign-in", c.signIn)
 	r.Post("/refresh", c.refresh)
+	r.Post("/logout", c.logout)
 
 	return r
 }
 
 func (c *Controller) signUp(w http.ResponseWriter, r *http.Request) {
-	const op = "controllers.auth.signUp"
+	const op = "http.auth.signUp"
 
 	log := http_lib.GetCtxLogger(r.Context())
 	log = log.With(slog.String("op", op))
@@ -114,11 +116,11 @@ func (c *Controller) signUp(w http.ResponseWriter, r *http.Request) {
 	log.Info("user signed up succesfully", slog.String("email", creds.Email))
 
 	render.Status(r, http.StatusCreated)
-	render.Render(w, r, http_lib.RespOk("user signed up succesfully"))
+	render.Render(w, r, http_lib.RespOk("User signed up succesfully"))
 }
 
 func (c *Controller) signIn(w http.ResponseWriter, r *http.Request) {
-	const op = "controllers.auth.signUp"
+	const op = "http.auth.signUp"
 
 	log := http_lib.GetCtxLogger(r.Context())
 	log = log.With(slog.String("op", op))
@@ -141,7 +143,7 @@ func (c *Controller) signIn(w http.ResponseWriter, r *http.Request) {
 	assessToken, refreshToken, err := c.as.SignIn(r.Context(), creds.Email, creds.Password)
 	if err != nil {
 		if errors.Is(err, services.ErrInvalidCredentials) {
-			http_lib.ErrUnauthorized(w, r, "invalid credentials")
+			http_lib.ErrUnauthorized(w, r, "Invalid credentials")
 			return
 		}
 
@@ -159,7 +161,7 @@ func (c *Controller) signIn(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Controller) refresh(w http.ResponseWriter, r *http.Request) {
-	const op = "controllers.auth.refresh"
+	const op = "http.auth.refresh"
 
 	log := http_lib.GetCtxLogger(r.Context())
 	log = log.With(slog.String("op", op))
@@ -182,15 +184,15 @@ func (c *Controller) refresh(w http.ResponseWriter, r *http.Request) {
 	accTkn, rfrshTkn, err := c.as.Refresh(r.Context(), rfrshReq.RefreshToken)
 	if err != nil {
 		if errors.Is(err, services.ErrTokenBlacklisted) {
-			http_lib.ErrUnauthorized(w, r, "token is blacklisted")
+			http_lib.ErrUnauthorized(w, r, "Token revoked")
 			return
 		}
 		if errors.Is(err, services.ErrTokenExpired) {
-			http_lib.ErrUnauthorized(w, r, "token expired")
+			http_lib.ErrUnauthorized(w, r, "Token expired")
 			return
 		}
 		if errors.Is(err, services.ErrUnexpectedTokenType) {
-			http_lib.ErrUnauthorized(w, r, "unexpected token type: expected refresh token")
+			http_lib.ErrUnauthorized(w, r, "Unexpected token type: expected refresh token")
 			return
 		}
 
@@ -203,6 +205,38 @@ func (c *Controller) refresh(w http.ResponseWriter, r *http.Request) {
 		AccessToken:  accTkn,
 		RefreshToken: rfrshTkn,
 	})
+}
+
+func (c *Controller) logout(w http.ResponseWriter, r *http.Request) {
+	const op = "http.auth.logout"
+
+	log := http_lib.GetCtxLogger(r.Context())
+	log = log.With(slog.String("op", op))
+
+	var tkns tokens
+	if err := render.DecodeJSON(r.Body, &tkns); err != nil {
+		log.Debug("failed to parse JSON", sl.Err(err))
+		http_lib.ErrUnprocessableEntity(w, r)
+		return
+	}
+
+	if err := c.as.Logout(r.Context(), tkns.AccessToken, tkns.RefreshToken); err != nil {
+		if errors.Is(err, services.ErrTokenInvalid) {
+			http_lib.ErrUnauthorized(w, r, "Invalid token")
+			return
+		}
+
+		if errors.Is(err, services.ErrTokenBlacklisted) {
+			http_lib.ErrUnauthorized(w, r, "Token revoked")
+			return
+		}
+
+		http_lib.ErrInternal(w, r)
+		return
+	}
+
+	render.Status(r, http.StatusOK)
+	render.Render(w, r, http_lib.RespOk("User logged out succesfully"))
 }
 
 func (t tokens) Render(w http.ResponseWriter, r *http.Request) error {

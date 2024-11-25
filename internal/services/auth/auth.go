@@ -174,6 +174,7 @@ func (s *Service) Refresh(ctx context.Context, refreshToken string) (string, str
 		log.Error("failed to get user ID from claims", sl.Err(err))
 		return "", "", fmt.Errorf("%s: %w", op, err)
 	}
+
 	if tknType != "refresh" {
 		log.Warn("unexpected token type: expected 'refresh'")
 		return "", "", fmt.Errorf("%s: %w", op, services.ErrUnexpectedTokenType)
@@ -226,9 +227,102 @@ func (s *Service) Refresh(ctx context.Context, refreshToken string) (string, str
 		return "", "", fmt.Errorf("%s: %w", op, err)
 	}
 
-	if err := s.cache.AddToBlacklist(ctx, refreshToken, expTime.Sub(time.Now())); err != nil {
+	if err := s.cache.AddToBlacklist(ctx, refreshToken, time.Until(expTime)); err != nil {
 		return "", "", fmt.Errorf("%s: %w", op, err)
 	}
 
 	return accTkn, rfrshTkn, nil
+}
+
+func (s *Service) Logout(ctx context.Context, accessToken, refreshToken string) error {
+	const op = "services.auth.Logout"
+
+	log := http_lib.GetCtxLogger(ctx)
+	log = log.With(slog.String("op", op))
+
+	// Check access token in blacklist
+	blacklisted, err := s.cache.IsBlacklisted(ctx, accessToken)
+	if err != nil {
+		log.Error("failed to check if access token blacklisted", sl.Err(err))
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	if blacklisted {
+		log.Warn("acces token blacklisted")
+		return fmt.Errorf("%s: %w", op, services.ErrTokenBlacklisted)
+	}
+
+	// Check refresh token in blacklist
+	blacklisted, err = s.cache.IsBlacklisted(ctx, refreshToken)
+	if err != nil {
+		log.Error("failed to check if refresh token blacklisted", sl.Err(err))
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	if blacklisted {
+		log.Warn("refresh token blacklisted")
+		return fmt.Errorf("%s: %w", op, services.ErrTokenBlacklisted)
+	}
+
+	accClaims, err := jwt_lib.FromString(accessToken, s.TknsCfg.Secret)
+	if err != nil && !errors.Is(err, jwt_lib.ErrExpired) {
+		if errors.Is(err, jwt_lib.ErrInvalid) {
+			log.Error("token invalid", sl.Err(err))
+			return fmt.Errorf("%s: %w", op, services.ErrTokenInvalid)
+		}
+
+		log.Error("failed to extract token claims", sl.Err(err))
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	accExpStr, err := jwt_lib.GetClaim(accClaims, "exp")
+	if err != nil {
+		log.Error("failed to get expiration time from claims", sl.Err(err))
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	accExpTime, err := time.Parse(time.RFC3339, accExpStr)
+	if err != nil {
+		log.Error("failed to parse expiration time", sl.Err(err))
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	rfrshClaims, err := jwt_lib.FromString(refreshToken, s.TknsCfg.Secret)
+	if err != nil {
+		if errors.Is(err, jwt_lib.ErrExpired) {
+			log.Warn("token expired", sl.Err(err))
+			return fmt.Errorf("%s: %w", op, services.ErrTokenExpired)
+		}
+		if errors.Is(err, jwt_lib.ErrInvalid) {
+			log.Error("token invalid", sl.Err(err))
+			return fmt.Errorf("%s: %w", op, services.ErrTokenInvalid)
+		}
+
+		log.Error("failed to extract token claims", sl.Err(err))
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	rfrshExpStr, err := jwt_lib.GetClaim(rfrshClaims, "exp")
+	if err != nil {
+		log.Error("failed to get expiration time from claims", sl.Err(err))
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	rfrshExpTime, err := time.Parse(time.RFC3339, rfrshExpStr)
+	if err != nil {
+		log.Error("failed to parse expiration time", sl.Err(err))
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	if err := s.cache.AddToBlacklist(ctx, refreshToken, time.Until(rfrshExpTime)); err != nil {
+		log.Error("failed to blacklist refresh token", sl.Err(err))
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	if err := s.cache.AddToBlacklist(ctx, accessToken, time.Until(accExpTime)); err != nil {
+		log.Error("failed to blacklist access token", sl.Err(err))
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	return nil
 }
