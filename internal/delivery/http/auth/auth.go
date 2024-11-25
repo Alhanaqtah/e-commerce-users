@@ -81,16 +81,17 @@ func (c *Controller) signUp(w http.ResponseWriter, r *http.Request) {
 	log = log.With(slog.String("op", op))
 
 	var creds signUpCredentials
-	defer r.Body.Close()
 	if err := render.DecodeJSON(r.Body, &creds); err != nil {
 		log.Debug("failed to parse JSON", sl.Err(err))
-		http.Error(w, "unprocessable entity", http.StatusUnprocessableEntity)
+		http_lib.ErrUnprocessableEntity(w, r)
 		return
 	}
 
+	defer r.Body.Close()
+
 	if err := c.valdtr.Struct(creds); err != nil {
 		log.Error("some fields are invalid", sl.Err(err))
-		http.Error(w, "some fields are invalid", http.StatusBadRequest)
+		http_lib.ErrInvalid(w, r, err)
 		return
 	}
 
@@ -102,15 +103,18 @@ func (c *Controller) signUp(w http.ResponseWriter, r *http.Request) {
 		creds.Password,
 	); err != nil {
 		if errors.Is(err, services.ErrExists) {
-			http.Error(w, "user already exists", http.StatusConflict)
+			http_lib.ErrConflict(w, r, "user already exists")
 			return
 		}
 
-		http.Error(w, "internal error", http.StatusInternalServerError)
+		http_lib.ErrInternal(w, r)
 		return
 	}
 
+	log.Info("user signed up succesfully", slog.String("email", creds.Email))
+
 	render.Status(r, http.StatusCreated)
+	render.Render(w, r, http_lib.RespOk("user signed up succesfully"))
 }
 
 func (c *Controller) signIn(w http.ResponseWriter, r *http.Request) {
@@ -120,29 +124,32 @@ func (c *Controller) signIn(w http.ResponseWriter, r *http.Request) {
 	log = log.With(slog.String("op", op))
 
 	var creds signInCredentials
-	defer r.Body.Close()
 	if err := render.DecodeJSON(r.Body, &creds); err != nil {
 		log.Debug("failed to parse JSON", sl.Err(err))
-		http.Error(w, "unprocessable entity", http.StatusUnprocessableEntity)
+		http_lib.ErrUnprocessableEntity(w, r)
 		return
 	}
 
+	defer r.Body.Close()
+
 	if err := c.valdtr.Struct(creds); err != nil {
 		log.Error("some fields are invalid", sl.Err(err))
-		http.Error(w, "bad request", http.StatusBadRequest)
+		http_lib.ErrInvalid(w, r, err)
 		return
 	}
 
 	assessToken, refreshToken, err := c.as.SignIn(r.Context(), creds.Email, creds.Password)
 	if err != nil {
 		if errors.Is(err, services.ErrInvalidCredentials) {
-			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			http_lib.ErrUnauthorized(w, r, "invalid credentials")
 			return
 		}
 
-		http.Error(w, "internal error", http.StatusInternalServerError)
+		http_lib.ErrInternal(w, r)
 		return
 	}
+
+	log.Info("user logged in successfully", slog.String("email", creds.Email))
 
 	render.Status(r, http.StatusOK)
 	render.Render(w, r, tokens{
@@ -158,35 +165,36 @@ func (c *Controller) refresh(w http.ResponseWriter, r *http.Request) {
 	log = log.With(slog.String("op", op))
 
 	var rfrshReq refreshRequest
-	defer r.Body.Close()
 	if err := render.DecodeJSON(r.Body, &rfrshReq); err != nil {
 		log.Debug("failed to parse JSON", sl.Err(err))
-		http.Error(w, "unprocessable entity", http.StatusUnprocessableEntity)
+		http_lib.ErrUnprocessableEntity(w, r)
 		return
 	}
 
+	defer r.Body.Close()
+
 	if err := c.valdtr.Struct(rfrshReq); err != nil {
 		log.Error("some fields are invalid", sl.Err(err))
-		http.Error(w, "some fiels are invalid", http.StatusBadRequest)
+		http_lib.ErrInvalid(w, r, err)
 		return
 	}
 
 	accTkn, rfrshTkn, err := c.as.Refresh(r.Context(), rfrshReq.RefreshToken)
 	if err != nil {
 		if errors.Is(err, services.ErrTokenBlacklisted) {
-			http.Error(w, "token is blacklisted", http.StatusUnauthorized)
+			http_lib.ErrUnauthorized(w, r, "token is blacklisted")
 			return
 		}
 		if errors.Is(err, services.ErrTokenExpired) {
-			http.Error(w, "token expired", http.StatusUnauthorized)
+			http_lib.ErrUnauthorized(w, r, "token expired")
 			return
 		}
 		if errors.Is(err, services.ErrUnexpectedTokenType) {
-			http.Error(w, "unexpected token type", http.StatusBadRequest)
+			http_lib.ErrUnauthorized(w, r, "unexpected token type: expected refresh token")
 			return
 		}
 
-		http.Error(w, "internal error", http.StatusInternalServerError)
+		http_lib.ErrInternal(w, r)
 		return
 	}
 

@@ -97,6 +97,7 @@ func (s *Service) SignIn(ctx context.Context, email, password string) (string, s
 	user, err := s.usrRepo.GetByEmail(ctx, email)
 	if err != nil {
 		if errors.Is(err, repositories.ErrNotFound) {
+			log.Warn("email not found", slog.String("email", email))
 			return "", "", fmt.Errorf("%s: %w", op, services.ErrNotFound)
 		}
 
@@ -106,7 +107,7 @@ func (s *Service) SignIn(ctx context.Context, email, password string) (string, s
 	err = bcrypt.CompareHashAndPassword(user.PassHash, []byte(password))
 	if err != nil {
 		if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
-			log.Debug("invalid password")
+			log.Warn("invalid password", slog.String("email", email))
 			return "", "", fmt.Errorf("%s: %w", op, services.ErrInvalidCredentials)
 		}
 
