@@ -9,10 +9,15 @@ import (
 
 type Config struct {
 	ENV        string     `yaml:"ENV" env-default:"dev"`
+	App        App        `yaml:"app"`
 	HTTPServer HTTPServer `yaml:"http_server" env-required:"true"`
 	Postgres   Postgres   `yaml:"postgres" env-required:"true"`
 	Redis      Redis      `yaml:"redis" env-required:"true"`
 	Tokens     Tokens     `yaml:"tokens" env-required:"true"`
+}
+
+type App struct {
+	Prefix string `yaml:"prefix"`
 }
 
 type HTTPServer struct {

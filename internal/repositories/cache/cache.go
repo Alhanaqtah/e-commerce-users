@@ -11,19 +11,21 @@ import (
 const valBlacklisted = "blacklisted"
 
 type Cache struct {
-	rc *redis.Client
+	rc     *redis.Client
+	prefix string
 }
 
-func New(rc *redis.Client) *Cache {
+func New(rc *redis.Client, prefix string) *Cache {
 	return &Cache{
-		rc: rc,
+		rc:     rc,
+		prefix: prefix,
 	}
 }
 
 func (c *Cache) IsBlacklisted(ctx context.Context, token string) (bool, error) {
 	const op = "repositories.cache.InBlacklist"
 
-	exists, err := c.rc.Exists(ctx, token).Result()
+	exists, err := c.rc.Exists(ctx, c.prefix+token).Result()
 	if err != nil {
 		return false, fmt.Errorf("%s: %w", op, err)
 	}
@@ -34,7 +36,7 @@ func (c *Cache) IsBlacklisted(ctx context.Context, token string) (bool, error) {
 func (c *Cache) AddToBlacklist(ctx context.Context, token string, ttl time.Duration) error {
 	const op = "repositories.cache.AddToBlacklist"
 
-	if _, err := c.rc.Set(ctx, token, valBlacklisted, ttl).Result(); err != nil {
+	if _, err := c.rc.Set(ctx, c.prefix+token, valBlacklisted, ttl).Result(); err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
