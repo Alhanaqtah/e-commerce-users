@@ -57,7 +57,7 @@ func (a *App) Start() {
 	authSrvc := auth_service.New(
 		&auth_service.Config{
 			Repo:    user_repo.New(a.strg),
-			Cache:   cache_repo.New(a.cache, a.cfg.App.Prefix),
+			Cache:   cache_repo.New(a.cache, a.cfg.Prefix),
 			TknsCfg: &a.cfg.Tokens,
 		},
 	)

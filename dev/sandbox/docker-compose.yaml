@@ -4,9 +4,9 @@ services:
   #     context: .
   #     dockerfile: Dockerfile
 
-  redis:
+  cache:
     image: redis:7.4.1
-    container_name: redis
+    container_name: cache
     environment:
       - REDIS_PASSWORD=secret-password
     ports:
@@ -22,9 +22,9 @@ services:
     networks:
       - e-commerce-network
 
-  postgres:
+  dataase:
     image: postgres:16
-    container_name: db
+    container_name: database
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres

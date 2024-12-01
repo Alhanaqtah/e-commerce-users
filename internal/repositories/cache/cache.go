@@ -18,7 +18,7 @@ type Cache struct {
 func New(rc *redis.Client, prefix string) *Cache {
 	return &Cache{
 		rc:     rc,
-		prefix: prefix,
+		prefix: fmt.Sprintf("%s_", prefix),
 	}
 }
 
