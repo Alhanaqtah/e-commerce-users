@@ -105,7 +105,7 @@ func (c *Controller) signUp(w http.ResponseWriter, r *http.Request) {
 		creds.Password,
 	); err != nil {
 		if errors.Is(err, services.ErrExists) {
-			http_lib.ErrConflict(w, r, "user already exists")
+			http_lib.ErrConflict(w, r, "User already exists")
 			return
 		}
 
@@ -142,6 +142,10 @@ func (c *Controller) signIn(w http.ResponseWriter, r *http.Request) {
 
 	assessToken, refreshToken, err := c.as.SignIn(r.Context(), creds.Email, creds.Password)
 	if err != nil {
+		if errors.Is(err, services.ErrNotFound) {
+			http_lib.ErrUnauthorized(w, r, "User not found")
+			return
+		}
 		if errors.Is(err, services.ErrInvalidCredentials) {
 			http_lib.ErrUnauthorized(w, r, "Invalid credentials")
 			return

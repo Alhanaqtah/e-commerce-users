@@ -33,9 +33,14 @@ func (ur *UserRepo) GetByEmail(ctx context.Context, email string) (*models.User,
 	log = log.With(slog.String("op", op))
 
 	row := ur.db.QueryRow(ctx, `
-	SELECT id, name, surname, birthdate, role, email, pass_hash, version, created_at
-	FROM users
-	WHERE email = $1`, email)
+	SELECT u.id, u.name, u.surname, u.birthdate, u.role, lc.email, lc.pass_hash, version, u.created_at
+	FROM
+		users u
+	JOIN
+		local_credentials lc
+	on
+		u.id = lc.user_id
+	WHERE lc.email = $1`, email)
 
 	var user models.User
 	err := row.Scan(
@@ -69,9 +74,14 @@ func (ur *UserRepo) GetByID(ctx context.Context, id string) (*models.User, error
 	log = log.With(slog.String("op", op))
 
 	row := ur.db.QueryRow(ctx, `
-	SELECT id, name, surname, birthdate, role, email, pass_hash, version, created_at
-	FROM users
-	WHERE id = $1`, id)
+	SELECT u.id, u.name, u.surname, u.birthdate, u.role, lc.email, lc.pass_hash, version, u.created_at
+	FROM
+		users u
+	JOIN
+		local_credentials lc
+	on
+		u.id = lc.user_id
+	WHERE u.id = $1`, id)
 
 	var user models.User
 	err := row.Scan(
@@ -104,13 +114,50 @@ func (ur *UserRepo) CreateUser(ctx context.Context, name, surname, birthdate, em
 	log := http_lib.GetCtxLogger(ctx)
 	log = log.With(slog.String("op", op))
 
-	_, err := ur.db.Exec(ctx, `
-	INSERT INTO users (name, surname, birthdate, email, pass_hash)
-	VALUES ($1, $2, $3, $4, $5)
-	`, name, surname, birthdate, email, passHash)
-
+	tx, err := ur.db.Begin(ctx)
 	if err != nil {
-		log.Error("failed to create user", slog.String("email", email), sl.Err(err))
+		log.Error("failed to begin transaction", sl.Err(err))
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	row := tx.QueryRow(ctx, `
+	INSERT INTO users (name, surname, birthdate)
+	VALUES ($1, $2, $3) RETURNING id
+	`, name, surname, birthdate)
+
+	var userID string
+	err = row.Scan(&userID)
+	if err != nil {
+		log.Error("failed to create user: inserting into users table", slog.String("email", email), sl.Err(err))
+		if err := tx.Rollback(ctx); err != nil {
+			log.Error("failed to rollback transaction", sl.Err(err))
+			return fmt.Errorf("%s: %w", op, err)
+		}
+
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	_, err = tx.Exec(ctx, `
+	INSERT INTO local_credentials (user_id, email, pass_hash)
+	VALUES ($1, $2, $3)
+	`, userID, email, passHash)
+	if err != nil {
+		log.Error("failed to create user: inserting into users table", slog.String("email", email), sl.Err(err))
+		if err := tx.Rollback(ctx); err != nil {
+			log.Error("failed to rollback transaction", sl.Err(err))
+			return fmt.Errorf("%s: %w", op, err)
+		}
+
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		log.Error("failed to commit transaction", sl.Err(err))
+		if err := tx.Rollback(ctx); err != nil {
+			log.Error("failed to rollback transaction", sl.Err(err))
+			return fmt.Errorf("%s: %w", op, err)
+		}
+
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
