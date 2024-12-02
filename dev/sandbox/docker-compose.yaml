@@ -1,9 +1,4 @@
 services:
-  # auth:
-  #   build:
-  #     context: .
-  #     dockerfile: Dockerfile
-
   cache:
     image: redis:7.4.1
     container_name: cache
