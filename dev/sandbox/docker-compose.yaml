@@ -9,7 +9,7 @@ services:
     volumes:
       - redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "$REDIS_PASSWORD", "ping"]
+      test: ["CMD", "redis-cli", "-a", "secret-password", "ping"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -17,17 +17,14 @@ services:
     networks:
       - e-commerce-network
 
-  dataase:
+  database:
     image: postgres:16
     container_name: database
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
-      - POSTGRES_HOST=postgres
-      - POSTGRES_PORT=2345
-      - POSTGRES_DB=postgres
     ports:
-      - 2345:5432
+      - 5432:5432
     volumes:
       - pg_data:/var/lib/postgresql/data
     restart: unless-stopped

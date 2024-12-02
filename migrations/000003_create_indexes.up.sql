@@ -1,0 +1,2 @@
+CREATE INDEX idx_local_credentials_email
+ON local_credentials(email);

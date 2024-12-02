@@ -1,0 +1,2 @@
+DROP ENUM IF EXISTS role;
+DROP EXTENSION "uuid-ossp" IF EXISTS;
