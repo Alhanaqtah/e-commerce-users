@@ -1,57 +1,57 @@
 package config
 
 import (
-	"os"
+	"log"
 	"time"
 
 	"github.com/ilyakaznacheev/cleanenv"
+	"github.com/joho/godotenv"
 )
 
 type Config struct {
-	ENV        string     `yaml:"ENV" env-default:"dev"`
-	Prefix     string     `yaml:"prefix"`
-	HTTPServer HTTPServer `yaml:"http_server" env-required:"true"`
-	Postgres   Postgres   `yaml:"postgres" env-required:"true"`
-	Redis      Redis      `yaml:"redis" env-required:"true"`
-	Tokens     Tokens     `yaml:"tokens" env-required:"true"`
+	ENV        string     `env:"ENV" env-default:"dev"`
+	Prefix     string     `env:"PREFIX" env-default:""`
+	HTTPServer HTTPServer `env-required:"true"`
+	Postgres   Postgres   `env-required:"true"`
+	Redis      Redis      `env-required:"true"`
+	Tokens     Tokens     `env-required:"true"`
 }
 
 type HTTPServer struct {
-	Host        string        `yaml:"host" env-required:"true"`
-	Port        string        `yaml:"port" env-required:"true"`
-	IdleTimeout time.Duration `yaml:"idle_timeout" env-required:"true"`
+	Host        string        `env:"HTTP_SERVER_HOST" env-required:"true"`
+	Port        string        `env:"HTTP_SERVER_PORT" env-required:"true"`
+	IdleTimeout time.Duration `env:"HTTP_SERVER_IDLE_TIMEOUT" env-required:"true"`
 }
 
 type Postgres struct {
-	User     string `yaml:"user" env-required:"true"`
-	Password string `yaml:"password" env-required:"true"`
-	Host     string `yaml:"host" env-required:"true"`
-	Port     string `yaml:"port" env-required:"true"`
-	DBName   string `yaml:"db_name" env-required:"true"`
-	MaxConns string `yaml:"max_conns" env-required:"true"`
+	User     string `env:"POSTGRES_USER" env-required:"true"`
+	Password string `env:"POSTGRES_PASSWORD" env-required:"true"`
+	Host     string `env:"POSTGRES_HOST" env-required:"true"`
+	Port     string `env:"POSTGRES_PORT" env-required:"true"`
+	DBName   string `env:"POSTGRES_NAME" env-required:"true"`
+	MaxConns int    `env:"POSTGRES_MAX_CONNS" env-required:"true"`
 }
 
 type Redis struct {
-	Address  string `yaml:"address" env-required:"true"`
-	Password string `yaml:"password" env-required:"true"`
-	DB       int    `yaml:"db" env-default:"0"`
+	Address  string `env:"REDIS_ADDRESS" env-required:"true"`
+	Password string `env:"REDIS_PASSWORD" env-required:"true"`
+	DB       int    `env:"REDIS_DB" env-default:"0"`
 }
 
 type Tokens struct {
-	Secret     string        `yaml:"secret" env-required:"true"`
-	AccessTTL  time.Duration `yaml:"access_ttl" env-required:"true"`
-	RefreshTTL time.Duration `yaml:"refresh_ttl" env-required:"true"`
+	Secret     string        `env:"TOKENS_SECRET" env-required:"true"`
+	AccessTTL  time.Duration `env:"TOKENS_ACCESS_TTL" env-required:"true"`
+	RefreshTTL time.Duration `env:"TOKENS_REFRESH_TTL" env-required:"true"`
 }
 
 func MustLoad() *Config {
 	var cfg Config
 
-	confPath := os.Getenv("AUTH_CONF_PATH")
-	if confPath == "" {
-		panic("AUTH_CONF_PATH not found")
+	if err := godotenv.Load(); err != nil {
+		log.Println(".env file not found, using system environment variables")
 	}
 
-	err := cleanenv.ReadConfig(confPath, &cfg)
+	err := cleanenv.ReadEnv(&cfg)
 	if err != nil {
 		panic(err)
 	}
