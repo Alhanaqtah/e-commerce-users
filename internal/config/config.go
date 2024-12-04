@@ -14,6 +14,7 @@ type Config struct {
 	HTTPServer HTTPServer `env-required:"true"`
 	Postgres   Postgres   `env-required:"true"`
 	Redis      Redis      `env-required:"true"`
+	SMTP       SMTP       `env-required:"true"`
 	Tokens     Tokens     `env-required:"true"`
 }
 
@@ -36,6 +37,14 @@ type Redis struct {
 	Address  string `env:"REDIS_ADDRESS" env-required:"true"`
 	Password string `env:"REDIS_PASSWORD" env-required:"true"`
 	DB       int    `env:"REDIS_DB" env-default:"0"`
+}
+
+type SMTP struct {
+	Username string        `env:"SMTP_USERNAME" env-required:"true"`
+	Password string        `env:"SMTP_PASSWORD" env-required:"true"`
+	Host     string        `env:"SMTP_HOST" env-required:"true"`
+	Port     string        `env:"SMTP_PORT" env-required:"true"`
+	CodeTTL  time.Duration `env:"SMTP_CODE_TTL" env-required:"true"`
 }
 
 type Tokens struct {

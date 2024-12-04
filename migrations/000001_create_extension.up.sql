@@ -6,7 +6,6 @@ BEGIN
         CREATE TYPE role AS ENUM
         (
             'customer',
-            'seller',
             'admin'      
         );
     END IF;

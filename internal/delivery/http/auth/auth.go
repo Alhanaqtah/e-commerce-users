@@ -116,7 +116,7 @@ func (c *Controller) signUp(w http.ResponseWriter, r *http.Request) {
 	log.Info("user signed up succesfully", slog.String("email", creds.Email))
 
 	render.Status(r, http.StatusCreated)
-	render.Render(w, r, http_lib.RespOk("User signed up succesfully"))
+	render.Render(w, r, http_lib.RespOk("Registration successful. A confirmation code has been sent to your email"))
 }
 
 func (c *Controller) signIn(w http.ResponseWriter, r *http.Request) {

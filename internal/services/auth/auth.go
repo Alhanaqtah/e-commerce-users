@@ -4,12 +4,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"log/slog"
+	"net/smtp"
 	"time"
 
 	"e-commerce-users/internal/config"
 	http_lib "e-commerce-users/internal/lib/http"
 	jwt_lib "e-commerce-users/internal/lib/jwt"
+	"e-commerce-users/internal/lib/random"
 	"e-commerce-users/internal/models"
 	"e-commerce-users/internal/repositories"
 	"e-commerce-users/internal/services"
@@ -27,25 +30,29 @@ type UserRepo interface {
 type Cache interface {
 	IsBlacklisted(ctx context.Context, token string) (bool, error)
 	AddToBlacklist(ctx context.Context, token string, ttl time.Duration) error
+	SetConfirmationCode(ctx context.Context, email, code string, ttl time.Duration) error
 }
 
 type Service struct {
 	usrRepo UserRepo
 	cache   Cache
-	TknsCfg *config.Tokens
+	tknsCfg *config.Tokens
+	smtpCfg *config.SMTP
 }
 
 type Config struct {
 	Repo    UserRepo
 	Cache   Cache
 	TknsCfg *config.Tokens
+	SMTPCfg *config.SMTP
 }
 
 func New(cfg *Config) *Service {
 	return &Service{
 		usrRepo: cfg.Repo,
 		cache:   cfg.Cache,
-		TknsCfg: cfg.TknsCfg,
+		tknsCfg: cfg.TknsCfg,
+		smtpCfg: cfg.SMTPCfg,
 	}
 }
 
@@ -85,6 +92,18 @@ func (s *Service) SignUp(ctx context.Context, name, surname, birthdate, email, p
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
+	// Generate & send confirmation code
+	code := random.Code()
+	if err := s.cache.SetConfirmationCode(ctx, email, code, s.smtpCfg.CodeTTL); err != nil {
+		log.Error("failed to put confirmation code to cache", sl.Err(err))
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	if err := s.sendEmail(email, code); err != nil {
+		log.Error("failed to send verification code", sl.Err(err))
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
 	return nil
 }
 
@@ -119,8 +138,8 @@ func (s *Service) SignIn(ctx context.Context, email, password string) (string, s
 		user.ID,
 		user.Role,
 		user.Version,
-		time.Now().Add(s.TknsCfg.AccessTTL),
-		s.TknsCfg.Secret,
+		time.Now().Add(s.tknsCfg.AccessTTL),
+		s.tknsCfg.Secret,
 	)
 	if err != nil {
 		log.Error("failed to generate access token", sl.Err(err))
@@ -130,8 +149,8 @@ func (s *Service) SignIn(ctx context.Context, email, password string) (string, s
 	refreshToken, err := jwt_lib.NewRefreshToken(
 		user.ID,
 		user.Version,
-		time.Now().Add(s.TknsCfg.RefreshTTL),
-		s.TknsCfg.Secret,
+		time.Now().Add(s.tknsCfg.RefreshTTL),
+		s.tknsCfg.Secret,
 	)
 	if err != nil {
 		log.Error("failed to generate refresh token", sl.Err(err))
@@ -158,7 +177,7 @@ func (s *Service) Refresh(ctx context.Context, refreshToken string) (string, str
 		return "", "", fmt.Errorf("%s: %w", op, services.ErrTokenBlacklisted)
 	}
 
-	claims, err := jwt_lib.FromString(refreshToken, s.TknsCfg.Secret)
+	claims, err := jwt_lib.FromString(refreshToken, s.tknsCfg.Secret)
 	if err != nil {
 		if errors.Is(err, jwt_lib.ErrExpired) {
 			log.Error("token expired", sl.Err(err))
@@ -196,8 +215,8 @@ func (s *Service) Refresh(ctx context.Context, refreshToken string) (string, str
 		user.ID,
 		user.Role,
 		user.Version,
-		time.Now().Add(s.TknsCfg.AccessTTL),
-		s.TknsCfg.Secret,
+		time.Now().Add(s.tknsCfg.AccessTTL),
+		s.tknsCfg.Secret,
 	)
 	if err != nil {
 		log.Error("failed to generate access token", sl.Err(err))
@@ -207,8 +226,8 @@ func (s *Service) Refresh(ctx context.Context, refreshToken string) (string, str
 	rfrshTkn, err := jwt_lib.NewRefreshToken(
 		user.ID,
 		user.Version,
-		time.Now().Add(s.TknsCfg.RefreshTTL),
-		s.TknsCfg.Secret,
+		time.Now().Add(s.tknsCfg.RefreshTTL),
+		s.tknsCfg.Secret,
 	)
 	if err != nil {
 		log.Error("failed to generate refresh token", sl.Err(err))
@@ -264,7 +283,7 @@ func (s *Service) Logout(ctx context.Context, accessToken, refreshToken string) 
 		return fmt.Errorf("%s: %w", op, services.ErrTokenBlacklisted)
 	}
 
-	accClaims, err := jwt_lib.FromString(accessToken, s.TknsCfg.Secret)
+	accClaims, err := jwt_lib.FromString(accessToken, s.tknsCfg.Secret)
 	if err != nil && !errors.Is(err, jwt_lib.ErrExpired) {
 		if errors.Is(err, jwt_lib.ErrInvalid) {
 			log.Error("token invalid", sl.Err(err))
@@ -287,7 +306,7 @@ func (s *Service) Logout(ctx context.Context, accessToken, refreshToken string) 
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
-	rfrshClaims, err := jwt_lib.FromString(refreshToken, s.TknsCfg.Secret)
+	rfrshClaims, err := jwt_lib.FromString(refreshToken, s.tknsCfg.Secret)
 	if err != nil {
 		if errors.Is(err, jwt_lib.ErrExpired) {
 			log.Warn("token expired", sl.Err(err))
@@ -321,6 +340,33 @@ func (s *Service) Logout(ctx context.Context, accessToken, refreshToken string) 
 
 	if err := s.cache.AddToBlacklist(ctx, accessToken, time.Until(accExpTime)); err != nil {
 		log.Error("failed to blacklist access token", sl.Err(err))
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	return nil
+}
+
+func (s *Service) sendEmail(email, code string) error {
+	const op = "services.auth.sendCode"
+
+	auth := smtp.PlainAuth("", s.smtpCfg.Username, s.smtpCfg.Password, s.smtpCfg.Host)
+
+	m := []byte(fmt.Sprintf(
+		`
+		From: %s
+		Your verification code: %s
+		`, s.smtpCfg.Username, code,
+	))
+
+	log.Printf("host: %s\nport: %s\n", s.smtpCfg.Host, s.smtpCfg.Port)
+
+	err := smtp.SendMail(
+		fmt.Sprintf("%s:%s", s.smtpCfg.Host, s.smtpCfg.Port),
+		auth,
+		s.smtpCfg.Username,
+		[]string{email},
+		m)
+	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 

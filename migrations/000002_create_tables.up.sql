@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS users (
     surname VARCHAR(255) NOT NULL,
     birthdate DATE NOT NULL,
     role ROLE DEFAULT 'customer',
+    is_active BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -13,5 +14,5 @@ CREATE TABLE IF NOT EXISTS local_credentials (
     email VARCHAR(100) UNIQUE NOT NULL,
     pass_hash BYTEA NOT NULL,
     version INT DEFAULT 1,
-    FOREIGN KEY (user_id) REFERENCES users(id)
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 )

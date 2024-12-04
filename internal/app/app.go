@@ -59,6 +59,7 @@ func (a *App) Start() {
 			Repo:    user_repo.New(a.strg),
 			Cache:   cache_repo.New(a.cache, a.cfg.Prefix),
 			TknsCfg: &a.cfg.Tokens,
+			SMTPCfg: &a.cfg.SMTP,
 		},
 	)
 

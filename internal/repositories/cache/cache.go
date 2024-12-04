@@ -42,3 +42,13 @@ func (c *Cache) AddToBlacklist(ctx context.Context, token string, ttl time.Durat
 
 	return nil
 }
+
+func (c *Cache) SetConfirmationCode(ctx context.Context, email, code string, ttl time.Duration) error {
+	const op = "repositories.cache.SetConfirmationCode"
+
+	if _, err := c.rc.Set(ctx, c.prefix+email, code, ttl).Result(); err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	return nil
+}
