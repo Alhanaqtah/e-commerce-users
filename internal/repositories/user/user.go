@@ -120,6 +120,8 @@ func (ur *UserRepo) CreateUser(ctx context.Context, name, surname, birthdate, em
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
+	defer tx.Rollback(ctx)
+
 	row := tx.QueryRow(ctx, `
 	INSERT INTO users (name, surname, birthdate)
 	VALUES ($1, $2, $3) RETURNING id
@@ -129,11 +131,6 @@ func (ur *UserRepo) CreateUser(ctx context.Context, name, surname, birthdate, em
 	err = row.Scan(&userID)
 	if err != nil {
 		log.Error("failed to create user: inserting into users table", slog.String("email", email), sl.Err(err))
-		if err := tx.Rollback(ctx); err != nil {
-			log.Error("failed to rollback transaction", sl.Err(err))
-			return fmt.Errorf("%s: %w", op, err)
-		}
-
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
@@ -143,21 +140,34 @@ func (ur *UserRepo) CreateUser(ctx context.Context, name, surname, birthdate, em
 	`, userID, email, passHash)
 	if err != nil {
 		log.Error("failed to create user: inserting into users table", slog.String("email", email), sl.Err(err))
-		if err := tx.Rollback(ctx); err != nil {
-			log.Error("failed to rollback transaction", sl.Err(err))
-			return fmt.Errorf("%s: %w", op, err)
-		}
-
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
 	if err := tx.Commit(ctx); err != nil {
 		log.Error("failed to commit transaction", sl.Err(err))
-		if err := tx.Rollback(ctx); err != nil {
-			log.Error("failed to rollback transaction", sl.Err(err))
-			return fmt.Errorf("%s: %w", op, err)
-		}
+		return fmt.Errorf("%s: %w", op, err)
+	}
 
+	return nil
+}
+
+func (ur *UserRepo) ActivateUser(ctx context.Context, email string) error {
+	const op = "repositories.auth.ActivateUser"
+
+	log := http_lib.GetCtxLogger(ctx)
+	log = log.With(slog.String("op", op))
+
+	var id string
+	row := ur.db.QueryRow(ctx, `SELECT user_id FROM local_credentials WHERE email = $1`, email)
+
+	if err := row.Scan(&id); err != nil {
+		log.Error("failed to scan query result: get user id by email", sl.Err(err))
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	_, err := ur.db.Exec(ctx, `UPDATE users SET is_active = true WHERE id = $1`, id)
+	if err != nil {
+		log.Error("failed to activate user", sl.Err(err))
 		return fmt.Errorf("%s: %w", op, err)
 	}
 

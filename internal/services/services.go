@@ -6,6 +6,7 @@ var (
 	ErrNotFound           = errors.New("not found")
 	ErrExists             = errors.New("exists")
 	ErrInvalidCredentials = errors.New("invalid credentials")
+	ErrCode               = errors.New("invalid code")
 )
 
 var (

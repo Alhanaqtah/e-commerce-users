@@ -58,7 +58,7 @@ func Logging(logger *slog.Logger) func(http.Handler) http.Handler {
 
 			next.ServeHTTP(w, r.WithContext(ctx))
 
-			log.Info("request handled", slog.Duration("elapsed", time.Since(t)))
+			log.Info("request handled", slog.Duration("elapsed", time.Duration(time.Since(t).Milliseconds())))
 		})
 	}
 }

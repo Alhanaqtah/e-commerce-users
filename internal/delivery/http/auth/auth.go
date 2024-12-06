@@ -20,8 +20,9 @@ import (
 type AuthService interface {
 	SignUp(ctx context.Context, name, surname, birthdate, email, password string) error
 	SignIn(ctx context.Context, name, password string) (string, string, error)
-	Refresh(ctx context.Context, refreshToken string) (string, string, error)
 	Logout(ctx context.Context, accessToken, refreshToken string) error
+	Confirm(ctx context.Context, email, code string) (string, string, error)
+	Refresh(ctx context.Context, refreshToken string) (string, string, error)
 }
 
 type Controller struct {
@@ -53,6 +54,11 @@ type tokens struct {
 	RefreshToken string `json:"refresh_token"`
 }
 
+type confirmRequest struct {
+	Email string `json:"email" validate:"required,email"`
+	Code  string `json:"code" validate:"required"`
+}
+
 type refreshRequest struct {
 	RefreshToken string `json:"refresh_token" validate:"required"`
 }
@@ -70,8 +76,9 @@ func (c *Controller) Register() *chi.Mux {
 
 	r.Post("/sign-up", c.signUp)
 	r.Post("/sign-in", c.signIn)
-	r.Post("/refresh", c.refresh)
 	r.Post("/logout", c.logout)
+	r.Post("/confirm", c.confirm)
+	r.Post("/refresh", c.refresh)
 
 	return r
 }
@@ -164,6 +171,86 @@ func (c *Controller) signIn(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (c *Controller) logout(w http.ResponseWriter, r *http.Request) {
+	const op = "http.auth.logout"
+
+	log := http_lib.GetCtxLogger(r.Context())
+	log = log.With(slog.String("op", op))
+
+	var tkns tokens
+	if err := render.DecodeJSON(r.Body, &tkns); err != nil {
+		log.Debug("failed to parse JSON", sl.Err(err))
+		http_lib.ErrUnprocessableEntity(w, r)
+		return
+	}
+
+	if err := c.valdtr.Struct(tkns); err != nil {
+		log.Error("some fields are invalid", sl.Err(err))
+		http_lib.ErrInvalid(w, r, err)
+		return
+	}
+
+	if err := c.as.Logout(r.Context(), tkns.AccessToken, tkns.RefreshToken); err != nil {
+		if errors.Is(err, services.ErrTokenInvalid) {
+			http_lib.ErrUnauthorized(w, r, "Invalid token")
+			return
+		}
+
+		if errors.Is(err, services.ErrTokenBlacklisted) {
+			http_lib.ErrUnauthorized(w, r, "Token revoked")
+			return
+		}
+
+		http_lib.ErrInternal(w, r)
+		return
+	}
+
+	render.Status(r, http.StatusOK)
+	render.Render(w, r, http_lib.RespOk("User logged out succesfully"))
+}
+
+func (c *Controller) confirm(w http.ResponseWriter, r *http.Request) {
+	const op = "http.auth.confirm"
+
+	log := http_lib.GetCtxLogger(r.Context())
+	log = log.With(slog.String("op", op))
+
+	var confirmReq confirmRequest
+	if err := render.DecodeJSON(r.Body, &confirmReq); err != nil {
+		log.Debug("failed to parse JSON", sl.Err(err))
+		http_lib.ErrUnprocessableEntity(w, r)
+		return
+	}
+
+	defer r.Body.Close()
+
+	if err := c.valdtr.Struct(confirmReq); err != nil {
+		log.Error("some fields are invalid", sl.Err(err))
+		http_lib.ErrInvalid(w, r, err)
+		return
+	}
+
+	accTkn, rfrshTkn, err := c.as.Confirm(r.Context(), confirmReq.Email, confirmReq.Code)
+	if err != nil {
+		if errors.Is(err, services.ErrNotFound) {
+			http_lib.ErrUnauthorized(w, r, "User not found")
+			return
+		}
+		if errors.Is(err, services.ErrCode) {
+			http_lib.ErrBadRequest(w, r)
+			return
+		}
+
+		http_lib.ErrInternal(w, r)
+		return
+	}
+
+	render.JSON(w, r, tokens{
+		AccessToken:  accTkn,
+		RefreshToken: rfrshTkn,
+	})
+}
+
 func (c *Controller) refresh(w http.ResponseWriter, r *http.Request) {
 	const op = "http.auth.refresh"
 
@@ -209,38 +296,6 @@ func (c *Controller) refresh(w http.ResponseWriter, r *http.Request) {
 		AccessToken:  accTkn,
 		RefreshToken: rfrshTkn,
 	})
-}
-
-func (c *Controller) logout(w http.ResponseWriter, r *http.Request) {
-	const op = "http.auth.logout"
-
-	log := http_lib.GetCtxLogger(r.Context())
-	log = log.With(slog.String("op", op))
-
-	var tkns tokens
-	if err := render.DecodeJSON(r.Body, &tkns); err != nil {
-		log.Debug("failed to parse JSON", sl.Err(err))
-		http_lib.ErrUnprocessableEntity(w, r)
-		return
-	}
-
-	if err := c.as.Logout(r.Context(), tkns.AccessToken, tkns.RefreshToken); err != nil {
-		if errors.Is(err, services.ErrTokenInvalid) {
-			http_lib.ErrUnauthorized(w, r, "Invalid token")
-			return
-		}
-
-		if errors.Is(err, services.ErrTokenBlacklisted) {
-			http_lib.ErrUnauthorized(w, r, "Token revoked")
-			return
-		}
-
-		http_lib.ErrInternal(w, r)
-		return
-	}
-
-	render.Status(r, http.StatusOK)
-	render.Render(w, r, http_lib.RespOk("User logged out succesfully"))
 }
 
 func (t tokens) Render(w http.ResponseWriter, r *http.Request) error {
