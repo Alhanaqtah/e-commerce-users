@@ -33,7 +33,7 @@ func (ur *UserRepo) GetByEmail(ctx context.Context, email string) (*models.User,
 	log = log.With(slog.String("op", op))
 
 	row := ur.db.QueryRow(ctx, `
-	SELECT u.id, u.name, u.surname, u.birthdate, u.role, lc.email, lc.pass_hash, version, u.created_at
+	SELECT u.id, u.name, u.surname, u.birthdate, u.role, u.is_active, lc.email, lc.pass_hash, version, u.created_at
 	FROM
 		users u
 	JOIN
@@ -49,6 +49,7 @@ func (ur *UserRepo) GetByEmail(ctx context.Context, email string) (*models.User,
 		&user.Surname,
 		&user.Birthdate,
 		&user.Role,
+		&user.IsActive,
 		&user.Email,
 		&user.PassHash,
 		&user.Version,
@@ -74,7 +75,7 @@ func (ur *UserRepo) GetByID(ctx context.Context, id string) (*models.User, error
 	log = log.With(slog.String("op", op))
 
 	row := ur.db.QueryRow(ctx, `
-	SELECT u.id, u.name, u.surname, u.birthdate, u.role, lc.email, lc.pass_hash, version, u.created_at
+	SELECT u.id, u.name, u.surname, u.birthdate, u.role, u.is_active, lc.email, lc.pass_hash, version, u.created_at
 	FROM
 		users u
 	JOIN
@@ -90,6 +91,7 @@ func (ur *UserRepo) GetByID(ctx context.Context, id string) (*models.User, error
 		&user.Surname,
 		&user.Birthdate,
 		&user.Role,
+		&user.IsActive,
 		&user.Email,
 		&user.PassHash,
 		&user.Version,

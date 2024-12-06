@@ -7,6 +7,7 @@ var (
 	ErrExists             = errors.New("exists")
 	ErrInvalidCredentials = errors.New("invalid credentials")
 	ErrCode               = errors.New("invalid code")
+	ErrNoActionRequired   = errors.New("no action required")
 )
 
 var (

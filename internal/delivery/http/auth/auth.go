@@ -23,6 +23,7 @@ type AuthService interface {
 	Logout(ctx context.Context, accessToken, refreshToken string) error
 	Confirm(ctx context.Context, email, code string) (string, string, error)
 	Refresh(ctx context.Context, refreshToken string) (string, string, error)
+	ResendCode(ctx context.Context, email string) error
 }
 
 type Controller struct {
@@ -59,6 +60,10 @@ type confirmRequest struct {
 	Code  string `json:"code" validate:"required"`
 }
 
+type resendRequest struct {
+	Email string `json:"email" validate:"required,email"`
+}
+
 type refreshRequest struct {
 	RefreshToken string `json:"refresh_token" validate:"required"`
 }
@@ -78,6 +83,7 @@ func (c *Controller) Register() *chi.Mux {
 	r.Post("/sign-in", c.signIn)
 	r.Post("/logout", c.logout)
 	r.Post("/confirm", c.confirm)
+	r.Post("/resend", c.resend)
 	r.Post("/refresh", c.refresh)
 
 	return r
@@ -249,6 +255,43 @@ func (c *Controller) confirm(w http.ResponseWriter, r *http.Request) {
 		AccessToken:  accTkn,
 		RefreshToken: rfrshTkn,
 	})
+}
+
+func (c *Controller) resend(w http.ResponseWriter, r *http.Request) {
+	const op = "http.auth.resend"
+
+	log := http_lib.GetCtxLogger(r.Context())
+	log = log.With(slog.String("op", op))
+
+	var rsntCode resendRequest
+	if err := render.DecodeJSON(r.Body, &rsntCode); err != nil {
+		log.Debug("failed to parse JSON", sl.Err(err))
+		http_lib.ErrUnprocessableEntity(w, r)
+		return
+	}
+
+	defer r.Body.Close()
+
+	if err := c.valdtr.Struct(rsntCode); err != nil {
+		log.Error("some fields are invalid", sl.Err(err))
+		http_lib.ErrInvalid(w, r, err)
+		return
+	}
+
+	if err := c.as.ResendCode(r.Context(), rsntCode.Email); err != nil {
+		if errors.Is(err, services.ErrNotFound) {
+			http_lib.ErrUnauthorized(w, r, "User with given email does't exists")
+			return
+		}
+		if errors.Is(err, services.ErrNoActionRequired) {
+			http_lib.ErrConflict(w, r, "User already active")
+			return
+		}
+
+		http_lib.ErrInternal(w, r)
+	}
+
+	render.JSON(w, r, http_lib.RespOk("Confirmation code sent to your email address"))
 }
 
 func (c *Controller) refresh(w http.ResponseWriter, r *http.Request) {

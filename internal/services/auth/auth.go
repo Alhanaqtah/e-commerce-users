@@ -318,7 +318,43 @@ func (s *Service) Confirm(ctx context.Context, email, code string) (string, stri
 		return "", "", fmt.Errorf("%s: %s", op, err)
 	}
 
-	return accessToken, refreshToken, err
+	return accessToken, refreshToken, nil
+}
+
+func (s *Service) ResendCode(ctx context.Context, email string) error {
+	const op = "services.auth.Confirm"
+
+	log := http_lib.GetCtxLogger(ctx)
+	log = log.With(slog.String("op", op))
+
+	user, err := s.usrRepo.GetByEmail(ctx, email)
+	if err != nil {
+		log.Error("failed to get user by email", sl.Err(err))
+		if errors.Is(err, repositories.ErrNotFound) {
+			return fmt.Errorf("%s: %w", op, err)
+		}
+
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	if user.IsActive {
+		log.Info("user already active")
+		return fmt.Errorf("%s: %w", op, services.ErrNoActionRequired)
+	}
+
+	code := random.Code()
+
+	if err := s.cache.SetConfirmationCode(ctx, email, code, s.smtpCfg.CodeTTL); err != nil {
+		log.Error("failed to set confirmation code into cache", sl.Err(err))
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	if err := s.sendEmail(email, code); err != nil {
+		log.Error("failed to send confirmation code to email", sl.Err(err))
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	return nil
 }
 
 func (s *Service) Refresh(ctx context.Context, refreshToken string) (string, string, error) {
