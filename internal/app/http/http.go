@@ -9,8 +9,10 @@ import (
 
 	"e-commerce-users/internal/config"
 	auth_http "e-commerce-users/internal/delivery/http/auth"
+	users_http "e-commerce-users/internal/delivery/http/users"
 	http_lib "e-commerce-users/internal/lib/http"
 	auth_service "e-commerce-users/internal/services/auth"
+	users_service "e-commerce-users/internal/services/users"
 
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/chi/v5"
@@ -23,6 +25,7 @@ type App struct {
 
 func New(
 	authSrvc *auth_service.Service,
+	usrSrvc *users_service.Service,
 	log *slog.Logger,
 	cfg *config.Config,
 ) *App {
@@ -39,13 +42,21 @@ func New(
 	})
 
 	r.Route("/api/v1", func(r chi.Router) {
-		authHTTPCtrl := auth_http.New(
+		authCtrl := auth_http.New(
 			&auth_http.Config{
 				AuthService: authSrvc,
 				TknsCfg:     &cfg.Tokens,
 			},
 		)
-		r.Mount("/auth", authHTTPCtrl.Register())
+		r.Mount("/auth", authCtrl.Register())
+
+		usersCtrl := users_http.New(
+			&users_http.Config{
+				UsrSrvc: usrSrvc,
+				TknsCfg: cfg.Tokens,
+			},
+		)
+		r.Mount("/users", usersCtrl.Register())
 	})
 
 	srv := &http.Server{

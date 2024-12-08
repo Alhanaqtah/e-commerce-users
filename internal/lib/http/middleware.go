@@ -10,8 +10,12 @@ import (
 	"github.com/google/uuid"
 )
 
-const (
-	CtxKeyLogger = "logger"
+type contextKey struct {
+	Key string
+}
+
+var (
+	CtxKeyLogger = &contextKey{"logger"}
 )
 
 var (

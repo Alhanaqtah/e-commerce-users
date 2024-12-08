@@ -9,6 +9,7 @@ import (
 	cache_repo "e-commerce-users/internal/repositories/cache"
 	user_repo "e-commerce-users/internal/repositories/user"
 	auth_service "e-commerce-users/internal/services/auth"
+	users_service "e-commerce-users/internal/services/users"
 	"e-commerce-users/pkg/logger/sl"
 	"e-commerce-users/pkg/postgres"
 	rds "e-commerce-users/pkg/redis"
@@ -63,8 +64,15 @@ func (a *App) Start() {
 		},
 	)
 
+	usersSrvc := users_service.New(
+		&users_service.Config{
+			Repo: user_repo.New(a.strg),
+		},
+	)
+
 	httpServer := apphttp.New(
 		authSrvc,
+		usersSrvc,
 		log,
 		a.cfg,
 	)
