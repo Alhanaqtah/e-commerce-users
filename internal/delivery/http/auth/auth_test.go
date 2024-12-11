@@ -196,6 +196,178 @@ func TestController_signIn(t *testing.T) {
 	}
 }
 
+func TestController_logout(t *testing.T) {
+	authSrvc := new(auth_mock.AuthService)
+
+	r := chi.NewRouter()
+	ctrl := auth_ctrl.New(
+		&auth_ctrl.Config{
+			AuthService: authSrvc,
+			TknsCfg: &config.Tokens{
+				Secret:     "secret",
+				AccessTTL:  5 * time.Minute,
+				RefreshTTL: 15 * time.Minute,
+			},
+		},
+	)
+
+	logger := slogdiscard.NewDiscardLogger()
+
+	r.Use(http_lib.Logging(logger))
+
+	r.Mount("/auth", ctrl.Register())
+
+	tests := []struct {
+		name                 string
+		inputBody            string
+		expectedStatus       int
+		expectedResponseBody string
+		mockBehavior         func()
+	}{
+		{
+			name:           "Correct input",
+			inputBody:      `{"access_token": "access-token", "refresh_token": "refresh-token"}`,
+			expectedStatus: http.StatusOK,
+			expectedResponseBody: `
+			{
+				"status": "Ok",
+				"message": "User logged out succesfully"
+			}`,
+			mockBehavior: func() {
+				authSrvc.On("Logout",
+					mock.Anything,
+					"access-token",
+					"refresh-token",
+				).Return(nil)
+			},
+		},
+		{
+			name:                 "Empty body",
+			inputBody:            ``,
+			expectedStatus:       http.StatusUnprocessableEntity,
+			expectedResponseBody: `{"status": "Error","message": "Unprocessable entity"}`,
+			mockBehavior:         func() {},
+		},
+		{
+			name:           "Invalid body",
+			inputBody:      `{}`,
+			expectedStatus: http.StatusBadRequest,
+			expectedResponseBody: `
+			{
+				"status": "Error",
+				"message": "Some fields are invalid",
+				"errors": {
+					"accesstoken": "field must satisfy 'required' constraint",
+					"refreshtoken": "field must satisfy 'required' constraint"
+				}
+			}`,
+			mockBehavior: func() {},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			tc.mockBehavior()
+
+			req := httptest.NewRequest("POST", "/auth/logout", bytes.NewBufferString(tc.inputBody))
+			w := httptest.NewRecorder()
+
+			r.ServeHTTP(w, req)
+
+			assert.Equal(t, tc.expectedStatus, w.Result().StatusCode)
+			assert.JSONEq(t, tc.expectedResponseBody, w.Body.String())
+		})
+	}
+}
+
+func TestController_confirm(t *testing.T) {
+	authSrvc := new(auth_mock.AuthService)
+
+	r := chi.NewRouter()
+	ctrl := auth_ctrl.New(
+		&auth_ctrl.Config{
+			AuthService: authSrvc,
+			TknsCfg: &config.Tokens{
+				Secret:     "secret",
+				AccessTTL:  5 * time.Minute,
+				RefreshTTL: 15 * time.Minute,
+			},
+		},
+	)
+
+	logger := slogdiscard.NewDiscardLogger()
+
+	r.Use(http_lib.Logging(logger))
+
+	r.Mount("/auth", ctrl.Register())
+
+	tests := []struct {
+		name                 string
+		inputBody            string
+		expectedStatus       int
+		expectedResponseBody string
+		mockBehavior         func()
+	}{
+		{
+			name:           "Correct input",
+			inputBody:      `{"email": "jhon@mail.com","code": "YwhpHx"}`,
+			expectedStatus: http.StatusOK,
+			expectedResponseBody: `
+			{
+				"access_token": "new-access-token",
+				"refresh_token": "new-refresh-token"
+			}`,
+			mockBehavior: func() {
+				authSrvc.On("Confirm",
+					mock.Anything,
+					"jhon@mail.com",
+					"YwhpHx",
+				).Return(
+					"new-access-token",
+					"new-refresh-token",
+					nil,
+				)
+			},
+		},
+		{
+			name:                 "Empty body",
+			inputBody:            ``,
+			expectedStatus:       http.StatusUnprocessableEntity,
+			expectedResponseBody: `{"status": "Error","message": "Unprocessable entity"}`,
+			mockBehavior:         func() {},
+		},
+		{
+			name:           "Invalid body",
+			inputBody:      `{}`,
+			expectedStatus: http.StatusBadRequest,
+			expectedResponseBody: `
+			{
+				"status": "Error",
+				"message": "Some fields are invalid",
+				"errors": {
+					"email": "field must satisfy 'required' constraint",
+					"code": "field must satisfy 'required' constraint"
+				}
+			}`,
+			mockBehavior: func() {},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			tc.mockBehavior()
+
+			req := httptest.NewRequest("POST", "/auth/confirm", bytes.NewBufferString(tc.inputBody))
+			w := httptest.NewRecorder()
+
+			r.ServeHTTP(w, req)
+
+			assert.Equal(t, tc.expectedStatus, w.Result().StatusCode)
+			assert.JSONEq(t, tc.expectedResponseBody, w.Body.String())
+		})
+	}
+}
+
 func TestController_refresh(t *testing.T) {
 	authSrvc := new(auth_mock.AuthService)
 

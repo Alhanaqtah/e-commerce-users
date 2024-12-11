@@ -16,7 +16,7 @@ import (
 func NewPool(cfg *config.Postgres) (*pgxpool.Pool, error) {
 	const op = "postgres.NewPool"
 
-	pool, err := pgxpool.New(context.Background(), fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable&pool_max_conns=%s",
+	pool, err := pgxpool.New(context.Background(), fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable&pool_max_conns=%d",
 		cfg.User,
 		cfg.Password,
 		cfg.Host,

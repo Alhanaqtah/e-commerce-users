@@ -50,7 +50,12 @@ type signInCredentials struct {
 	Password string `json:"password" validate:"required"`
 }
 
-type tokens struct {
+type tokensRequest struct {
+	AccessToken  string `json:"access_token" validate:"required"`
+	RefreshToken string `json:"refresh_token" validate:"required"`
+}
+
+type tokensResponse struct {
 	AccessToken  string `json:"access_token"`
 	RefreshToken string `json:"refresh_token"`
 }
@@ -171,7 +176,7 @@ func (c *Controller) signIn(w http.ResponseWriter, r *http.Request) {
 	log.Info("user logged in successfully", slog.String("email", creds.Email))
 
 	render.Status(r, http.StatusOK)
-	render.Render(w, r, tokens{
+	render.Render(w, r, tokensResponse{
 		AccessToken:  assessToken,
 		RefreshToken: refreshToken,
 	})
@@ -183,7 +188,7 @@ func (c *Controller) logout(w http.ResponseWriter, r *http.Request) {
 	log := http_lib.GetCtxLogger(r.Context())
 	log = log.With(slog.String("op", op))
 
-	var tkns tokens
+	var tkns tokensRequest
 	if err := render.DecodeJSON(r.Body, &tkns); err != nil {
 		log.Debug("failed to parse JSON", sl.Err(err))
 		http_lib.ErrUnprocessableEntity(w, r)
@@ -251,7 +256,7 @@ func (c *Controller) confirm(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	render.JSON(w, r, tokens{
+	render.JSON(w, r, tokensResponse{
 		AccessToken:  accTkn,
 		RefreshToken: rfrshTkn,
 	})
@@ -335,12 +340,12 @@ func (c *Controller) refresh(w http.ResponseWriter, r *http.Request) {
 	}
 
 	render.Status(r, http.StatusOK)
-	render.Render(w, r, tokens{
+	render.Render(w, r, tokensResponse{
 		AccessToken:  accTkn,
 		RefreshToken: rfrshTkn,
 	})
 }
 
-func (t tokens) Render(w http.ResponseWriter, r *http.Request) error {
+func (t tokensResponse) Render(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
