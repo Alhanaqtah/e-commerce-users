@@ -16,8 +16,7 @@ import (
 )
 
 type UserRepo struct {
-	db  *pgxpool.Pool
-	log *slog.Logger
+	db *pgxpool.Pool
 }
 
 func New(pool *pgxpool.Pool) *UserRepo {

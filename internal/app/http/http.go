@@ -38,7 +38,6 @@ func New(
 
 	r.Post("/healthcheck", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		return
 	})
 
 	r.Route("/api/v1", func(r chi.Router) {

@@ -9,3 +9,6 @@ sandbox-down:
 
 test.unit:
 	go test ./...
+
+lint:
+	golangci-lint run ./...
