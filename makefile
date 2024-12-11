@@ -6,3 +6,6 @@ sandbox-up:
 
 sandbox-down:
 	docker compose -f dev/sandbox/docker-compose.yaml down
+
+test.unit:
+	go test ./...
