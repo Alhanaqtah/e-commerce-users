@@ -103,7 +103,6 @@ func TestController_signUp(t *testing.T) {
 			assert.JSONEq(t, tc.expectedResponseBody, w.Body.String())
 		})
 	}
-
 }
 
 func TestController_signIn(t *testing.T) {

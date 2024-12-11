@@ -6,8 +6,11 @@ import (
 	"log/slog"
 	"net/http"
 	"time"
+	"unicode"
 
+	"github.com/go-chi/jwtauth"
 	"github.com/google/uuid"
+	"github.com/lestrrat-go/jwx/jwt"
 )
 
 type contextKey struct {
@@ -65,4 +68,25 @@ func Logging(logger *slog.Logger) func(http.Handler) http.Handler {
 			log.Info("request handled", slog.Duration("elapsed", time.Duration(time.Since(t).Milliseconds())))
 		})
 	}
+}
+
+func Authenticator(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		token, _, err := jwtauth.FromContext(r.Context())
+
+		if err != nil {
+			msg := []rune(err.Error())
+			msg[0] = unicode.ToUpper(msg[0])
+			ErrUnauthorized(w, r, string(msg))
+			return
+		}
+
+		if token == nil || jwt.Validate(token) != nil {
+			ErrUnauthorized(w, r, "Token is unauthorized")
+			return
+		}
+
+		// Token is authenticated, pass it through
+		next.ServeHTTP(w, r)
+	})
 }

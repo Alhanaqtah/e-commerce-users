@@ -42,7 +42,7 @@ func (c *Controller) Register() *chi.Mux {
 		r.Use(jwtauth.Verifier(
 			jwtauth.New("HS256", []byte(c.tknsCfg.Secret), nil),
 		))
-		r.Use(jwtauth.Authenticator)
+		r.Use(http_lib.Authenticator)
 
 		r.Get("/", c.getProfile)
 	})
@@ -60,7 +60,6 @@ func (c *Controller) getProfile(w http.ResponseWriter, r *http.Request) {
 
 	_, claims, err := jwtauth.FromContext(r.Context())
 	if err != nil {
-		log.Error("failed to extract token claims from context")
 		http_lib.ErrInternal(w, r)
 		return
 	}
