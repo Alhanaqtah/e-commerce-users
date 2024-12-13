@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"net/smtp"
 	"time"
 
 	"e-commerce-users/internal/config"
@@ -35,26 +34,31 @@ type Cache interface {
 	RemoveConfirmationCode(ctx context.Context, email string) error
 }
 
+type Mailer interface {
+	Send(email, code string) error
+	CodeTTL() time.Duration
+}
+
 type Service struct {
 	usrRepo UserRepo
 	cache   Cache
+	mailer  Mailer
 	tknsCfg *config.Tokens
-	smtpCfg *config.SMTP
 }
 
 type Config struct {
 	Repo    UserRepo
 	Cache   Cache
+	Mailer  Mailer
 	TknsCfg *config.Tokens
-	SMTPCfg *config.SMTP
 }
 
 func New(cfg *Config) *Service {
 	return &Service{
 		usrRepo: cfg.Repo,
 		cache:   cfg.Cache,
+		mailer:  cfg.Mailer,
 		tknsCfg: cfg.TknsCfg,
-		smtpCfg: cfg.SMTPCfg,
 	}
 }
 
@@ -96,12 +100,12 @@ func (s *Service) SignUp(ctx context.Context, name, surname, birthdate, email, p
 
 	// Generate & send confirmation code
 	code := random.Code()
-	if err := s.cache.SetConfirmationCode(ctx, email, code, s.smtpCfg.CodeTTL); err != nil {
+	if err := s.cache.SetConfirmationCode(ctx, email, code, s.mailer.CodeTTL()); err != nil {
 		log.Error("failed to put confirmation code to cache", sl.Err(err))
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
-	if err := s.sendEmail(email, code); err != nil {
+	if err := s.mailer.Send(email, code); err != nil {
 		log.Error("failed to send verification code", sl.Err(err))
 		return fmt.Errorf("%s: %w", op, err)
 	}
@@ -344,12 +348,12 @@ func (s *Service) ResendCode(ctx context.Context, email string) error {
 
 	code := random.Code()
 
-	if err := s.cache.SetConfirmationCode(ctx, email, code, s.smtpCfg.CodeTTL); err != nil {
+	if err := s.cache.SetConfirmationCode(ctx, email, code, s.mailer.CodeTTL()); err != nil {
 		log.Error("failed to set confirmation code into cache", sl.Err(err))
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
-	if err := s.sendEmail(email, code); err != nil {
+	if err := s.mailer.Send(email, code); err != nil {
 		log.Error("failed to send confirmation code to email", sl.Err(err))
 		return fmt.Errorf("%s: %w", op, err)
 	}
@@ -448,29 +452,4 @@ func (s *Service) Refresh(ctx context.Context, refreshToken string) (string, str
 	}
 
 	return accTkn, rfrshTkn, nil
-}
-
-func (s *Service) sendEmail(email, code string) error {
-	const op = "services.auth.sendCode"
-
-	auth := smtp.PlainAuth("", s.smtpCfg.Username, s.smtpCfg.Password, s.smtpCfg.Host)
-
-	m := []byte(fmt.Sprintf(
-		`
-		From: %s
-		Your verification code: %s
-		`, s.smtpCfg.Username, code,
-	))
-
-	err := smtp.SendMail(
-		fmt.Sprintf("%s:%s", s.smtpCfg.Host, s.smtpCfg.Port),
-		auth,
-		s.smtpCfg.Username,
-		[]string{email},
-		m)
-	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
-	}
-
-	return nil
 }

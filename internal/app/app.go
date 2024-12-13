@@ -7,6 +7,7 @@ import (
 	apphttp "e-commerce-users/internal/app/http"
 	"e-commerce-users/internal/config"
 	cache_repo "e-commerce-users/internal/repositories/cache"
+	"e-commerce-users/internal/repositories/mailer"
 	user_repo "e-commerce-users/internal/repositories/user"
 	auth_service "e-commerce-users/internal/services/auth"
 	users_service "e-commerce-users/internal/services/users"
@@ -39,7 +40,7 @@ func (a *App) Start() {
 
 	log := a.log.With(slog.String("op", op))
 
-	// Initialize Postgres
+	// Infrasructure
 	if err := a.initStorage(); err != nil {
 		log.Error("failed to establish connection with storage", sl.Err(err))
 		os.Exit(1)
@@ -47,7 +48,6 @@ func (a *App) Start() {
 
 	log.Debug("connection with storage initialized successfully")
 
-	// Initialize Redis
 	if err := a.initCache(); err != nil {
 		log.Error("failed to establish connection with cache", sl.Err(err))
 		os.Exit(1)
@@ -55,21 +55,28 @@ func (a *App) Start() {
 
 	log.Debug("connection with cache initialized successfully")
 
+	// Repositories
+	userRepo := user_repo.New(a.strg)
+	cache := cache_repo.New(a.cache, a.cfg.Prefix)
+	mailer := mailer.New(&a.cfg.SMTP)
+
+	// Services
 	authSrvc := auth_service.New(
 		&auth_service.Config{
-			Repo:    user_repo.New(a.strg),
-			Cache:   cache_repo.New(a.cache, a.cfg.Prefix),
+			Repo:    userRepo,
+			Cache:   cache,
+			Mailer:  mailer,
 			TknsCfg: &a.cfg.Tokens,
-			SMTPCfg: &a.cfg.SMTP,
 		},
 	)
 
 	usersSrvc := users_service.New(
 		&users_service.Config{
-			Repo: user_repo.New(a.strg),
+			Repo: userRepo,
 		},
 	)
 
+	// Delivery
 	httpServer := apphttp.New(
 		authSrvc,
 		usersSrvc,
