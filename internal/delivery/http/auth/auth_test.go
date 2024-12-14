@@ -96,6 +96,7 @@ func TestController_signUp(t *testing.T) {
 
 			req := httptest.NewRequest("POST", "/auth/sign-up", bytes.NewBufferString(tc.inputBody))
 			w := httptest.NewRecorder()
+			defer w.Result().Body.Close()
 
 			r.ServeHTTP(w, req)
 

@@ -59,9 +59,10 @@ func New(
 	})
 
 	srv := &http.Server{
-		Addr:        cfg.HTTPServer.Host + ":" + cfg.HTTPServer.Port,
-		Handler:     r,
-		IdleTimeout: cfg.HTTPServer.IdleTimeout,
+		Addr:              cfg.HTTPServer.Host + ":" + cfg.HTTPServer.Port,
+		Handler:           r,
+		IdleTimeout:       cfg.HTTPServer.IdleTimeout,
+		ReadHeaderTimeout: 10 * time.Second,
 	}
 
 	return &App{
@@ -71,8 +72,6 @@ func New(
 }
 
 func (a *App) Start() error {
-	const op = "apphttp.Start"
-
 	go func() {
 		if err := a.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			a.log.Error("HTTP server error", slog.String("error", err.Error()))
