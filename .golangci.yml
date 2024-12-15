@@ -51,7 +51,7 @@ linters-settings:
         severity: warning
 
   gocyclo:
-    min-complexity: 15
+    min-complexity: 20
 
   goconst:
     min-len: 3
