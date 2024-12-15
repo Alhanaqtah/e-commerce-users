@@ -100,7 +100,7 @@ func TestController_signUp(t *testing.T) {
 
 			r.ServeHTTP(w, req)
 
-			assert.Equal(t, tc.expectedStatus, w.Result().StatusCode) //nolint:bodyclose
+			assert.Equal(t, tc.expectedStatus, w.Code) //nolint:bodyclose
 			assert.JSONEq(t, tc.expectedResponseBody, w.Body.String())
 		})
 	}
