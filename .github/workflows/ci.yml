@@ -21,8 +21,7 @@ jobs:
       uses: golangci/golangci-lint-action@v6
       with:
         version: v1.62.2
-        args: --out-format json
-        
+
     - name: Test
       run: go test -v ./...
 
