@@ -39,7 +39,7 @@ func RespErr(msg string) *Response {
 
 func ErrInternal(w http.ResponseWriter, r *http.Request) {
 	render.Status(r, http.StatusInternalServerError)
-	render.Render(w, r, Response{
+	render.Render(w, r, Response{ //nolint:errcheck
 		Status:  StatusErr,
 		Message: "Internal error",
 	})
@@ -47,7 +47,7 @@ func ErrInternal(w http.ResponseWriter, r *http.Request) {
 
 func ErrUnprocessableEntity(w http.ResponseWriter, r *http.Request) {
 	render.Status(r, http.StatusUnprocessableEntity)
-	render.Render(w, r, Response{
+	render.Render(w, r, Response{ //nolint:errcheck
 		Status:  StatusErr,
 		Message: "Unprocessable entity",
 	})
@@ -55,7 +55,7 @@ func ErrUnprocessableEntity(w http.ResponseWriter, r *http.Request) {
 
 func ErrConflict(w http.ResponseWriter, r *http.Request, msg string) {
 	render.Status(r, http.StatusConflict)
-	render.Render(w, r, Response{
+	render.Render(w, r, Response{ //nolint:errcheck
 		Status:  StatusErr,
 		Message: msg,
 	})
@@ -63,7 +63,7 @@ func ErrConflict(w http.ResponseWriter, r *http.Request, msg string) {
 
 func ErrBadRequest(w http.ResponseWriter, r *http.Request) {
 	render.Status(r, http.StatusBadRequest)
-	render.Render(w, r, Response{
+	render.Render(w, r, Response{ //nolint:errcheck
 		Status:  StatusErr,
 		Message: "Bad request",
 	})
@@ -71,7 +71,7 @@ func ErrBadRequest(w http.ResponseWriter, r *http.Request) {
 
 func ErrUnauthorized(w http.ResponseWriter, r *http.Request, msg string) {
 	render.Status(r, http.StatusUnauthorized)
-	render.Render(w, r, Response{
+	render.Render(w, r, Response{ //nolint:errcheck
 		Status:  StatusErr,
 		Message: msg,
 	})
@@ -85,7 +85,7 @@ func ErrInvalid(w http.ResponseWriter, r *http.Request, err error) {
 	}
 
 	render.Status(r, http.StatusBadRequest)
-	render.Render(w, r, Response{
+	render.Render(w, r, Response{ //nolint:errcheck
 		Status:  StatusErr,
 		Message: "Some fields are invalid",
 		Errors:  errs,

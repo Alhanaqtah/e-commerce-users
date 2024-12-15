@@ -121,7 +121,7 @@ func (ur *UserRepo) CreateUser(ctx context.Context, name, surname, birthdate, em
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint:errcheck
 
 	row := tx.QueryRow(ctx, `
 	INSERT INTO users (name, surname, birthdate)

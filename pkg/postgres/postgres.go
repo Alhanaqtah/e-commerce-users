@@ -53,7 +53,7 @@ func migrationUp(cfg *config.Postgres) error {
 	if err != nil {
 		return fmt.Errorf("%s: failed to open sql DB: %w", op, err)
 	}
-	defer sqlDB.Close()
+	defer sqlDB.Close() //nolint:errcheck
 
 	driver, err := postgres.WithInstance(sqlDB, &postgres.Config{})
 	if err != nil {

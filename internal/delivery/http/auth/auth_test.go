@@ -100,7 +100,7 @@ func TestController_signUp(t *testing.T) {
 
 			r.ServeHTTP(w, req)
 
-			assert.Equal(t, tc.expectedStatus, w.Result().StatusCode)
+			assert.Equal(t, tc.expectedStatus, w.Result().StatusCode) //nolint:bodyclose
 			assert.JSONEq(t, tc.expectedResponseBody, w.Body.String())
 		})
 	}
@@ -190,7 +190,7 @@ func TestController_signIn(t *testing.T) {
 
 			r.ServeHTTP(w, req)
 
-			assert.Equal(t, tc.expectedStatus, w.Result().StatusCode)
+			assert.Equal(t, tc.expectedStatus, w.Result().StatusCode) //nolint:bodyclose
 			assert.JSONEq(t, tc.expectedResponseBody, w.Body.String())
 		})
 	}
@@ -274,7 +274,7 @@ func TestController_logout(t *testing.T) {
 
 			r.ServeHTTP(w, req)
 
-			assert.Equal(t, tc.expectedStatus, w.Result().StatusCode)
+			assert.Equal(t, tc.expectedStatus, w.Result().StatusCode) //nolint:bodyclose
 			assert.JSONEq(t, tc.expectedResponseBody, w.Body.String())
 		})
 	}
@@ -362,7 +362,7 @@ func TestController_confirm(t *testing.T) {
 
 			r.ServeHTTP(w, req)
 
-			assert.Equal(t, tc.expectedStatus, w.Result().StatusCode)
+			assert.Equal(t, tc.expectedStatus, w.Result().StatusCode) //nolint:bodyclose
 			assert.JSONEq(t, tc.expectedResponseBody, w.Body.String())
 		})
 	}
@@ -444,7 +444,7 @@ func TestController_resend(t *testing.T) {
 
 			r.ServeHTTP(w, req)
 
-			assert.Equal(t, tc.expectedStatus, w.Result().StatusCode)
+			assert.Equal(t, tc.expectedStatus, w.Result().StatusCode) //nolint:bodyclose
 			assert.JSONEq(t, tc.expectedResponseBody, w.Body.String())
 		})
 	}
@@ -530,7 +530,7 @@ func TestController_refresh(t *testing.T) {
 
 			r.ServeHTTP(w, req)
 
-			assert.Equal(t, tc.expectedStatus, w.Result().StatusCode)
+			assert.Equal(t, tc.expectedStatus, w.Result().StatusCode) //nolint:bodyclose
 			assert.JSONEq(t, tc.expectedResponseBody, w.Body.String())
 		})
 	}

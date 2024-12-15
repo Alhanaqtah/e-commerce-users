@@ -107,7 +107,7 @@ func (c *Controller) signUp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	defer r.Body.Close()
+	defer r.Body.Close() //nolint:errcheck
 
 	if err := c.valdtr.Struct(creds); err != nil {
 		log.Error("some fields are invalid", sl.Err(err))
@@ -134,7 +134,7 @@ func (c *Controller) signUp(w http.ResponseWriter, r *http.Request) {
 	log.Info("user signed up succesfully", slog.String("email", creds.Email))
 
 	render.Status(r, http.StatusCreated)
-	render.Render(w, r, http_lib.RespOk("Registration successful. A confirmation code has been sent to your email"))
+	render.Render(w, r, http_lib.RespOk("Registration successful. A confirmation code has been sent to your email")) //nolint:errcheck
 }
 
 func (c *Controller) signIn(w http.ResponseWriter, r *http.Request) {
@@ -150,7 +150,7 @@ func (c *Controller) signIn(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	defer r.Body.Close()
+	defer r.Body.Close() //nolint:errcheck
 
 	if err := c.valdtr.Struct(creds); err != nil {
 		log.Error("some fields are invalid", sl.Err(err))
@@ -176,7 +176,7 @@ func (c *Controller) signIn(w http.ResponseWriter, r *http.Request) {
 	log.Info("user logged in successfully", slog.String("email", creds.Email))
 
 	render.Status(r, http.StatusOK)
-	render.Render(w, r, tokensResponse{
+	render.Render(w, r, tokensResponse{ //nolint:errcheck
 		AccessToken:  assessToken,
 		RefreshToken: refreshToken,
 	})
@@ -217,7 +217,7 @@ func (c *Controller) logout(w http.ResponseWriter, r *http.Request) {
 	}
 
 	render.Status(r, http.StatusOK)
-	render.Render(w, r, http_lib.RespOk("User logged out succesfully"))
+	render.Render(w, r, http_lib.RespOk("User logged out succesfully")) //nolint:errcheck
 }
 
 func (c *Controller) confirm(w http.ResponseWriter, r *http.Request) {
@@ -233,7 +233,7 @@ func (c *Controller) confirm(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	defer r.Body.Close()
+	defer r.Body.Close() //nolint:errcheck
 
 	if err := c.valdtr.Struct(confirmReq); err != nil {
 		log.Error("some fields are invalid", sl.Err(err))
@@ -275,7 +275,7 @@ func (c *Controller) resend(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	defer r.Body.Close()
+	defer r.Body.Close() //nolint:errcheck
 
 	if err := c.valdtr.Struct(rsntCode); err != nil {
 		log.Error("some fields are invalid", sl.Err(err))
@@ -312,7 +312,7 @@ func (c *Controller) refresh(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	defer r.Body.Close()
+	defer r.Body.Close() //nolint:errcheck
 
 	if err := c.valdtr.Struct(rfrshReq); err != nil {
 		log.Error("some fields are invalid", sl.Err(err))
@@ -340,7 +340,7 @@ func (c *Controller) refresh(w http.ResponseWriter, r *http.Request) {
 	}
 
 	render.Status(r, http.StatusOK)
-	render.Render(w, r, tokensResponse{
+	render.Render(w, r, tokensResponse{ //nolint:errcheck
 		AccessToken:  accTkn,
 		RefreshToken: rfrshTkn,
 	})
