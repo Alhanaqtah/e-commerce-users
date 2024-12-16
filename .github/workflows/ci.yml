@@ -3,13 +3,12 @@ name: CI/CD Pipeline
 on:
   push:
     branches:
-      - '**'
-      - '!main'
+      - main       # Срабатывает на пуш в main
     tags:
-      - 'v*'
+      - 'v*'       # Срабатывает на пуш тегов версии
   pull_request:
     branches:
-      - main
+      - main       # Срабатывает на PR в main
 
 jobs:
   lint-and-test:
@@ -36,7 +35,7 @@ jobs:
     runs-on: ubuntu-latest
     if: |
       github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') || 
-      github.event_name == 'pull_request' && startsWith(github.head_ref, 'refs/tags/v')
+      github.event_name == 'pull_request' && startsWith(github.head_ref, 'v')
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
