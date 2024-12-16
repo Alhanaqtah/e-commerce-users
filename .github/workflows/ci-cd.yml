@@ -45,6 +45,9 @@ jobs:
       with:
         go-version: '1.23'
 
+    - name: Debug Docker Login
+      run: echo ${{ secrets.DOCKER_USERNAME }} && echo ${{ secrets.DOCKER_PASSWORD }}
+
     - name: Build and push container
       uses: docker/build-push-action@v6
       with:
