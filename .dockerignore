@@ -1,2 +1,7 @@
 makefile
 TODO.md
+.git
+.gitignore
+.env
+TODO.md
+makefile
